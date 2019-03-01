@@ -8,7 +8,7 @@
 * how to call this method in the body of the "START" code.
 * 
 * Hints and Tips:
-    -Follow the code commenting convention here for file & method headers
+*   -Follow the code commenting convention here for file & method headers
 *   -Don't rename this file name (Main.X68)
 *   -Don't reorg the start address ($1000)
 *   -Don't rename or edit the IO method I've provided you with here
@@ -201,6 +201,7 @@ outFilename         DC.B 'Output.txt',0
 byteRead            DS.B 1
 
    END    START        ; last line of source
+
 
 
 
