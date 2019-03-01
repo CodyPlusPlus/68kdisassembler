@@ -1,6 +1,6 @@
 *--------------------------------------------------------------------------
 * Title      : Disassembler Skeleton 
-* Written by : You, and you should change all default comments
+* Written by : Cody Stuck
 * Date       :
 * 
 * Description: This code contains a method for you to use
@@ -36,6 +36,9 @@ START:
     *Your disassembler code goes here
     **************************************************
     
+    LEA testOPCODE,A6
+    JSR identifyOPCODE
+    
     ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
     ;load start and end address as longs
     
@@ -64,6 +67,89 @@ method1:
 *********************************************************************************
 method2:
         NOP
+        RTS
+*********************************************************************************
+* Method Name: identifyOPCODE
+* Description:    attempts to decode an opcode by first examining the first nibble, then branching off to identify opcode
+*
+* Preconditions:  A6 should contain the location of the opcode word
+* Postconditions: TBD
+*********************************************************************************
+identifyOPCODE:
+		MOVE.W (A6),D3 *move opcode to D3
+		
+        CMP.W RTS,D3 *check if the OP is rts
+        BEQ dRTS
+        
+        AND.W isolateNibbleMask,D3 *isolate nibble by clearing the rest of the bits
+        
+        * check the first nibble and jump to the proper jumptable for that prefix
+        CMP.W chk0000,D3
+        BEQ ident0000
+        CMP.W chk0100,D3
+        BEQ ident0100
+        CMP.W chk0101,D3
+        BEQ ident0101
+        CMP.W chk0110,D3
+        BEQ ident0110
+        CMP.W chk1000,D3
+        BEQ ident1000
+        CMP.W chk1001,D3
+        BEQ ident1001
+        CMP.W chk1011,D3
+        BEQ ident1011
+        CMP.W chk1100,D3
+        BEQ ident1100
+        CMP.W chk1101,D3
+        BEQ ident1101
+
+*TODO add case for MOVEA/MOVE        
+                
+ident0000
+		* ORI/CMPI/BCLR
+		JMP endIdent
+
+ident0100
+		* NEG/RTS/JRS/MOVEM/LEA
+		JMP endIdent
+
+ident0101
+		* SUBQ
+		JMP endIdent
+
+ident0110
+		* BRA
+		JMP endIdent
+
+ident1000
+		* DIVS/OR
+		JMP endIdent
+
+ident1001
+		* SUB
+		JMP endIdent
+
+ident1011
+		* EOR/CMP
+		JMP endIdent
+
+ident1100
+		* MULS
+		JMP endIdent
+
+ident1101
+		* ADD/ADDA
+		JMP endIdent
+
+dRTS
+		*this is RTS
+		JMP endIdent
+		
+unknown 
+		*print DATA
+		JMP endIdent
+
+endIdent        
         RTS
 *********************************************************************************
 * Method Name: TrapTask13
@@ -195,10 +281,30 @@ countDone:
 CR                  EQU $0D
 LF                  EQU $0A
 NEWLINE             DC.B CR,LF,0  
-MSG1                DC.B 'MOVE.L D4,D5',0
-MSG2                DC.B 'ADD.B D0,D1',0
+MSG1                DC.B 'DATA',0
+MSG2                DC.B 'NOP',0
 outFilename         DC.B 'Output.txt',0
 byteRead            DS.B 1
+
+RTS					DC.W %0100111001110101
+JSRMASK				DC.W %0100111010000000
+
+chk0000				DC.W %0000000000000000
+chk0100				DC.W %0100000000000000
+chk0101				DC.W %0101000000000000
+chk0110				DC.W %0110000000000000
+chk1000				DC.W %1000000000000000
+chk1001				DC.W %1001000000000000
+chk1011				DC.W %1011000000000000
+chk1100				DC.W %1100000000000000
+chk1101				DC.W %1101000000000000
+
+testOPCODE			DC.W %0101000000000000
+
+isolateNibbleMask   DC.W %1111000000000000
+
+TESTSTARTADDRESS	EQU $00004000
+TESTENDADDRESS		EQU	$00005000
 
    END    START        ; last line of source
 
