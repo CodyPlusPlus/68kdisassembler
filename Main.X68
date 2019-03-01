@@ -106,47 +106,126 @@ identifyOPCODE:
 *TODO add case for MOVEA/MOVE        
                 
 ident0000
-		* ORI/CMPI/BCLR
-		JMP endIdent
+		* is this ORI/CMPI/BCLR
+		
+		JMP data
 
 ident0100
-		* NEG/RTS/JRS/MOVEM/LEA
-		JMP endIdent
+		* is this NEG/RTS/JRS/MOVEM/LEA
+		
+		JMP data
 
 ident0101
-		* SUBQ
-		JMP endIdent
+		* is this SUBQ
+		
+		JMP data
 
 ident0110
-		* BRA
-		JMP endIdent
+		* is this BRA
+		
+		JMP data
 
 ident1000
-		* DIVS/OR
-		JMP endIdent
+		* is this DIVS/OR
+		
+		JMP data
 
 ident1001
-		* SUB
-		JMP endIdent
+		* is this SUB
+		
+		JMP data
 
 ident1011
-		* EOR/CMP
-		JMP endIdent
+		* is this EOR/CMP
+		
+		JMP data
 
 ident1100
-		* MULS
-		JMP endIdent
+		* is this MULS
+		
+		JMP data
 
 ident1101
-		* ADD/ADDA
-		JMP endIdent
+		* is this ADD/ADDA
+		
+		JMP data
 
 dRTS
 		*this is RTS
-		JMP endIdent
 		
-unknown 
+		JMP endIdent		
+dORI
+		*this is ORI
+		
+		JMP endIdent
+dCMPI
+		*this is CMPI
+		
+		JMP endIdent		
+dBCLR
+		*this is BCLR
+		
+		JMP endIdent
+dNEG
+		*this is NEG
+		
+		JMP endIdent
+dJRS
+		*this is JRS
+		
+		JMP endIdent		
+dMOVEM
+		*this is MOVEM
+		
+		JMP endIdent
+dLEA
+		*this is LEA
+		
+		JMP endIdent		
+dSUBQ
+		*this is SUBQ
+		
+		JMP endIdent
+dBRA
+		*this is BRA
+		
+		JMP endIdent
+dDIVS
+		*this is DIVS
+		
+		JMP endIdent
+dOR
+		*this is OR
+		
+		JMP endIdent
+dSUB
+		*this is SUB
+		
+		JMP endIdent
+dEOR
+		*this is EOR
+		
+		JMP endIdent
+dCMP
+		*this is CMP
+		
+		JMP endIdent
+dMULS
+		*this is MULS
+		
+		JMP endIdent
+dADD
+		*this is ADD
+		
+		JMP endIdent
+dADDA
+		*this is ADDA
+		
+		JMP endIdent		
+		
+data 
 		*print DATA
+		
 		JMP endIdent
 
 endIdent        
@@ -299,7 +378,9 @@ chk1011				DC.W %1011000000000000
 chk1100				DC.W %1100000000000000
 chk1101				DC.W %1101000000000000
 
-testOPCODE			DC.W %0101000000000000
+
+
+testOPCODE			DC.W %0101111110010101
 
 isolateNibbleMask   DC.W %1111000000000000
 
