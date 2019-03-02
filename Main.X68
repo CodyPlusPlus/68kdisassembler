@@ -105,6 +105,7 @@ identifyOPCODE:
         BEQ ident1100
         CMP.W chk1101,D3
         BEQ ident1101
+        JMP data
 
 *TODO add case for MOVEA/MOVE        
                 
