@@ -81,6 +81,9 @@ identifyOPCODE:
         CMP.W RTS,D3 *check if the OP is rts
         BEQ dRTS
         
+        CMP.W NOP,D3 *check if the OP is NOP
+        BEQ dNOP
+        
         AND.W isolateNibbleMask,D3 *isolate nibble by clearing the rest of the bits
         
         * check the first nibble and jump to the proper jumptable for that prefix
@@ -152,6 +155,10 @@ ident1101
 
 dRTS
 		*this is RTS
+		
+		JMP endIdent		
+dNOP
+		*this is NOP
 		
 		JMP endIdent		
 dORI
@@ -367,6 +374,7 @@ byteRead            DS.B 1
 
 RTS					DC.W %0100111001110101
 JSRMASK				DC.W %0100111010000000
+NOP					DC.W %0100111001110001
 
 chk0000				DC.W %0000000000000000
 chk0100				DC.W %0100000000000000
@@ -388,6 +396,7 @@ TESTSTARTADDRESS	EQU $00004000
 TESTENDADDRESS		EQU	$00005000
 
    END    START        ; last line of source
+
 
 
 
