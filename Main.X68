@@ -126,8 +126,26 @@ identifyOPCODE:
 
 ident0000
 		* is this ORI/CMPI/BCLR
+		
+		* ORI?
+		EOR.W #ORIISO,D3 *clear irrelevant bits
+		CMP.W #ORICHK,D3 *compare to identity
+		BEQ dORI *match?
+		MOVE (A6),D3 *move the full opcode back into D3
+		
+		* CMPI?
+		EOR.W #CMPIISO,D3 *clear irrelevant bits
+		CMP.W #CMPICHK,D3 *compare to identity
+		BEQ dCMPI *match?
+		MOVE (A6),D3 *move the full opcode back into D3		
+		
+		* BCLR?
+		EOR.W #BCLRISO,D3 *clear irrelevant bits
+		CMP.W #BCLRCHK,D3 *compare to identity
+		BEQ dBCLR *match?
+		MOVE (A6),D3 *move the full opcode back into D3	
 
-		JMP data
+		JMP data *could not identify
 
 ident0100
 		* is this NEG/RTS/JRS/MOVEM/LEA
@@ -136,23 +154,43 @@ ident0100
 
 ident0101
 		* is this SUBQ
+		
+		* SUBQ?
+		EOR.W #SUBQISO,D3 *clear irrelevant bits
+		CMP.W #SUBQCHK,D3 *compare to identity
+		BEQ dSUBQ *match?
+		MOVE (A6),D3 *move the full opcode back into D3
 
-		JMP data
+		JMP data *could not identify
 
 ident0110
 		* is this BRA
 
-		JMP data
+		* BRA?
+		EOR.W #BRAISO,D3 *clear irrelevant bits
+		CMP.W #BRACHK,D3 *compare to identity
+		BEQ dBRA *match?
+		MOVE (A6),D3 *move the full opcode back into D3
+
+		JMP data *could not identify
 
 ident1000
 		* is this DIVS/OR
+	    
+        * DIVS?
+		EOR.W #DIVSISO,D3 *clear irrelevant bits
+		CMP.W #DIVSCHK,D3 *compare to identity
+		BEQ dDIVS *match?
+		MOVE (A6),D3 *move the full opcode back into D3
+		
+		*TODO: figure out how to do OR
 
-		JMP data
+		JMP data *could not identify
 
 ident1001
 		* is this SUB
 
-		JMP data
+		JMP data *could not identify
 
 ident1011
 		* is this EOR/CMP
@@ -161,8 +199,14 @@ ident1011
 
 ident1100
 		* is this MULS
+		
+		* MULS?
+		EOR.W #MULSISO,D3 *clear irrelevant bits
+		CMP.W #MULSCHK,D3 *compare to identity
+		BEQ dMULS *match?
+		MOVE (A6),D3 *move the full opcode back into D3
 
-		JMP data
+		JMP data *could not identify
 
 ident1101
 		* is this ADD/ADDA
@@ -504,9 +548,7 @@ MSG2                DC.B 'NOP',0
 outFilename         DC.B 'Output.txt',0
 byteRead            DS.B 1
 
-RTS					DC.W %0100111001110101
-JSRMASK				DC.W %0100111010000000
-NOP					DC.W %0100111001110001
+
 
 * I/O Variables.
 *Variables go here.
@@ -521,6 +563,30 @@ chk1001				DC.W %1001000000000000
 chk1011				DC.W %1011000000000000
 chk1100				DC.W %1100000000000000
 chk1101				DC.W %1101000000000000
+
+RTS					DC.W %0100111001110101
+JSRMASK				DC.W %0100111010000000
+NOP					DC.W %0100111001110001
+
+ORIISO              DC.W %1111000011111111
+ORICHK              DC.W %0000000000000000
+CMPIISO             DC.W %1111000011111111
+CMPICHK             DC.W %0000110000000000
+BCLRISO             DC.W %1111000000111111
+BCLRCHK             DC.W %0000100010000000
+
+SUBQISO             DC.W %1111111011111111
+SUBQCHK             DC.W %0000000100000000
+
+BRAISO              DC.W %1111000011111111
+BRACHK              DC.W %0000000000000000   
+
+MULSISO             DC.W %1111111000111111
+MULSCHK             DC.W %0000000111000000
+
+DIVSISO             DC.W %1111111000111111
+DIVSCHK             DC.W %0000000111000000
+
 
 * Ea variables.
 modeAn              DC.B %00000000      * An
@@ -544,10 +610,10 @@ TESTENDADDRESS		EQU	$00005000
 
    END    START        ; last line of source
 
-
-
-
-
+*~Font name~Courier New~
+*~Font size~10~
+*~Tab type~1~
+*~Tab size~4~
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~
