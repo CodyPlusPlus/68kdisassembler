@@ -148,9 +148,35 @@ ident0000
 		JMP data *could not identify
 
 ident0100
-		* is this NEG/RTS/JRS/MOVEM/LEA
+		* is this NEG/RTS/JSR/MOVEM/LEA
+		
+		*RTS has already been checked fo
+		
+		* NEG?
+		EOR.W #NEGISO,D3 *clear irrelevant bits
+		CMP.W #NEGCHK,D3 *compare to identity
+		BEQ dNEG *match?
+		MOVE (A6),D3 *move the full opcode back into D3	
+		
+		* JSR?
+		EOR.W #JSRISO,D3 *clear irrelevant bits
+		CMP.W #JSRCHK,D3 *compare to identity
+		BEQ dJSR *match?
+		MOVE (A6),D3 *move the full opcode back into D3
 
-		JMP data
+		* MOVEM?
+		EOR.W #MOVEMISO,D3 *clear irrelevant bits
+		CMP.W #MOVEMCHK,D3 *compare to identity
+		BEQ dMOVEM *match?
+		MOVE (A6),D3 *move the full opcode back into D3				
+		
+		* LEA?
+		EOR.W #LEAISO,D3 *clear irrelevant bits
+		CMP.W #LEACHK,D3 *compare to identity
+		BEQ dLEA *match?
+		MOVE (A6),D3 *move the full opcode back into D3			
+
+		JMP data *could not identify
 
 ident0101
 		* is this SUBQ
@@ -237,8 +263,8 @@ dNEG
 		*this is NEG
 
 		JMP endIdent
-dJRS
-		*this is JRS
+dJSR
+		*this is JSR
 
 		JMP endIdent
 dMOVEM
@@ -587,6 +613,14 @@ MULSCHK             DC.W %0000000111000000
 DIVSISO             DC.W %1111111000111111
 DIVSCHK             DC.W %0000000111000000
 
+NEGISO              DC.W %1111000011111111
+NEGCHK              DC.W %0000010000000000
+JSRISO              DC.W %1111000000111111
+JSRCHK              DC.W %0000111010000000
+MOVEMISO            DC.W %1111010001111111
+MOVEMCHK            DC.W %0000100010000000
+LEAISO              DC.W %1111111000111111
+LEACHK              DC.W %0000000111000000
 
 * Ea variables.
 modeAn              DC.B %00000000      * An
