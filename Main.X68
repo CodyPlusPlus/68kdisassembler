@@ -10,7 +10,7 @@
 * Hints and Tips:
 *   -Follow the code commenting convention here for file & method headers
 *   -Don't rename this file name (Main.X68)
-*   -Don't reorg the start address ($1000)
+*   -Don't r g the start address ($1000)
 *   -Don't rename or edit the IO method I've provided you with here
 *   -Don't rename the config.cfg file or change the file format:
 *    <Long_StartAddress>\CR\LF
@@ -126,22 +126,23 @@ identifyOPCODE:
 
 ident0000
 		* is this ORI/CMPI/BCLR
+		MOVE (A6),D3 *move the full opcode back into D3
 		
 		* ORI?
-		EOR.W #ORIISO,D3 *clear irrelevant bits
+		AND.W ORIISO,D3 *clear irrelevant bits
 		CMP.W #ORICHK,D3 *compare to identity
 		BEQ dORI *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 		
 		* CMPI?
-		EOR.W #CMPIISO,D3 *clear irrelevant bits
-		CMP.W #CMPICHK,D3 *compare to identity
+		AND.W CMPIISO,D3 *clear irrelevant bits
+		CMP.W CMPICHK,D3 *compare to identity
 		BEQ dCMPI *match?
 		MOVE (A6),D3 *move the full opcode back into D3		
 		
 		* BCLR?
-		EOR.W #BCLRISO,D3 *clear irrelevant bits
-		CMP.W #BCLRCHK,D3 *compare to identity
+		AND.W BCLRISO,D3 *clear irrelevant bits
+		CMP.W BCLRCHK,D3 *compare to identity
 		BEQ dBCLR *match?
 		MOVE (A6),D3 *move the full opcode back into D3	
 
@@ -149,30 +150,31 @@ ident0000
 
 ident0100
 		* is this NEG/RTS/JSR/MOVEM/LEA
+		MOVE (A6),D3 *move the full opcode back into D3
 		
-		*RTS has already been checked fo
+		*RTS has already been checked
 		
 		* NEG?
-		EOR.W #NEGISO,D3 *clear irrelevant bits
-		CMP.W #NEGCHK,D3 *compare to identity
+		AND.W NEGISO,D3 *clear irrelevant bits
+		CMP.W NEGCHK,D3 *compare to identity
 		BEQ dNEG *match?
 		MOVE (A6),D3 *move the full opcode back into D3	
 		
 		* JSR?
-		EOR.W #JSRISO,D3 *clear irrelevant bits
-		CMP.W #JSRCHK,D3 *compare to identity
+		AND.W JSRISO,D3 *clear irrelevant bits
+		CMP.W JSRCHK,D3 *compare to identity
 		BEQ dJSR *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 
 		* MOVEM?
-		EOR.W #MOVEMISO,D3 *clear irrelevant bits
-		CMP.W #MOVEMCHK,D3 *compare to identity
+		AND.W MOVEMISO,D3 *clear irrelevant bits
+		CMP.W MOVEMCHK,D3 *compare to identity
 		BEQ dMOVEM *match?
 		MOVE (A6),D3 *move the full opcode back into D3				
 		
 		* LEA?
-		EOR.W #LEAISO,D3 *clear irrelevant bits
-		CMP.W #LEACHK,D3 *compare to identity
+		AND.W LEAISO,D3 *clear irrelevant bits
+		CMP.W LEACHK,D3 *compare to identity
 		BEQ dLEA *match?
 		MOVE (A6),D3 *move the full opcode back into D3			
 
@@ -180,10 +182,11 @@ ident0100
 
 ident0101
 		* is this SUBQ
+		MOVE (A6),D3 *move the full opcode back into D3
 		
 		* SUBQ?
-		EOR.W #SUBQISO,D3 *clear irrelevant bits
-		CMP.W #SUBQCHK,D3 *compare to identity
+		AND.W SUBQISO,D3 *clear irrelevant bits
+		CMP.W SUBQCHK,D3 *compare to identity
 		BEQ dSUBQ *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 
@@ -191,10 +194,11 @@ ident0101
 
 ident0110
 		* is this BRA
+		MOVE (A6),D3 *move the full opcode back into D3
 
 		* BRA?
-		EOR.W #BRAISO,D3 *clear irrelevant bits
-		CMP.W #BRACHK,D3 *compare to identity
+		AND.W BRAISO,D3 *clear irrelevant bits
+		CMP.W BRACHK,D3 *compare to identity
 		BEQ dBRA *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 
@@ -202,10 +206,11 @@ ident0110
 
 ident1000
 		* is this DIVS/OR
+		MOVE (A6),D3 *move the full opcode back into D3
 	    
         * DIVS?
-		EOR.W #DIVSISO,D3 *clear irrelevant bits
-		CMP.W #DIVSCHK,D3 *compare to identity
+		AND.W DIVSISO,D3 *clear irrelevant bits
+		CMP.W DIVSCHK,D3 *compare to identity
 		BEQ dDIVS *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 		
@@ -215,20 +220,25 @@ ident1000
 
 ident1001
 		* is this SUB
+		MOVE (A6),D3 *move the full opcode back into D3
+		
+		*TODO: figure out how to do SUB
 
 		JMP data *could not identify
 
 ident1011
 		* is this EOR/CMP
+		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data
 
 ident1100
 		* is this MULS
+		MOVE (A6),D3 *move the full opcode back into D3
 		
 		* MULS?
-		EOR.W #MULSISO,D3 *clear irrelevant bits
-		CMP.W #MULSCHK,D3 *compare to identity
+		AND.W MULSISO,D3 *clear irrelevant bits
+		CMP.W MULSCHK,D3 *compare to identity
 		BEQ dMULS *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 
@@ -236,6 +246,7 @@ ident1100
 
 ident1101
 		* is this ADD/ADDA
+		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data
 
@@ -594,32 +605,32 @@ RTS					DC.W %0100111001110101
 JSRMASK				DC.W %0100111010000000
 NOP					DC.W %0100111001110001
 
-ORIISO              DC.W %1111000011111111
+ORIISO              DC.W %0000111100000000
 ORICHK              DC.W %0000000000000000
-CMPIISO             DC.W %1111000011111111
+CMPIISO             DC.W %0000111100000000
 CMPICHK             DC.W %0000110000000000
-BCLRISO             DC.W %1111000000111111
+BCLRISO             DC.W %0000111111000000
 BCLRCHK             DC.W %0000100010000000
 
-SUBQISO             DC.W %1111111011111111
+SUBQISO             DC.W %0000000100000000
 SUBQCHK             DC.W %0000000100000000
 
-BRAISO              DC.W %1111000011111111
+BRAISO              DC.W %0000111100000000
 BRACHK              DC.W %0000000000000000   
 
-MULSISO             DC.W %1111111000111111
+MULSISO             DC.W %0000000110000000
 MULSCHK             DC.W %0000000111000000
 
-DIVSISO             DC.W %1111111000111111
+DIVSISO             DC.W %0000000111000000
 DIVSCHK             DC.W %0000000111000000
 
-NEGISO              DC.W %1111000011111111
+NEGISO              DC.W %0000111100000000
 NEGCHK              DC.W %0000010000000000
-JSRISO              DC.W %1111000000111111
+JSRISO              DC.W %0000111111000000
 JSRCHK              DC.W %0000111010000000
-MOVEMISO            DC.W %1111010001111111
+MOVEMISO            DC.W %0000101110000000
 MOVEMCHK            DC.W %0000100010000000
-LEAISO              DC.W %1111111000111111
+LEAISO              DC.W %0000000111000000
 LEACHK              DC.W %0000000111000000
 
 * Ea variables.
@@ -635,7 +646,7 @@ modeAbs_Long        DC.B %00111001      * (xxx).L
 modeImmediate       DC.B %00111100      * Immediate
 
 
-testOPCODE			DC.W %0101111110010101
+testOPCODE			DC.W %0100111010010100
 
 isolateNibbleMask   DC.W %1111000000000000
 
@@ -648,6 +659,7 @@ TESTENDADDRESS		EQU	$00005000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 *~Font name~Courier New~
 *~Font size~10~
 *~Tab type~1~
