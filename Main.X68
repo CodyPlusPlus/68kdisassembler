@@ -84,11 +84,17 @@ method2:
 
 *********************************************************************************
 * Method Name: identifyOPCODE
-* Description:    attempts to decode an opcode by first examining the first nibble,
+* Description:    Attempts to decode an opcode by first examining the first nibble,
 *                 then branching off to identify opcode
 *
-* Preconditions:  A6 should contain the location of the opcode word
-* Postconditions: TBD
+* Preconditions:  A6 should contain the pointer to the next word after opcode.
+*                 A7 Should contain the pointer to the next space in good buffer.
+*                 D7 should contain the good/bad flag.
+*
+* Postconditions: A7 will contain the pointer to the next space in the good buffer
+*                 D7 will contain the good/bad flag
+
+* MODIFIES:       D3
 *********************************************************************************
 identifyOPCODE:
 
@@ -129,8 +135,7 @@ identifyOPCODE:
 
 *TODO add case for MOVEA/MOVE
 
-ident0000
-		* is this ORI/CMPI/BCLR
+ident0000 * is this ORI/CMPI/BCLR
 		MOVE (A6),D3 *move the full opcode back into D3
 		
 		* ORI?
@@ -153,8 +158,7 @@ ident0000
 
 		JMP data *could not identify
 
-ident0100
-		* is this NEG/RTS/JSR/MOVEM/LEA
+ident0100 * is this NEG/RTS/JSR/MOVEM/LEA
 		MOVE (A6),D3 *move the full opcode back into D3
 		
 		*RTS has already been checked
@@ -185,8 +189,7 @@ ident0100
 
 		JMP data *could not identify
 
-ident0101
-		* is this SUBQ
+ident0101 * is this SUBQ
 		MOVE (A6),D3 *move the full opcode back into D3
 		
 		* SUBQ?
@@ -197,8 +200,7 @@ ident0101
 
 		JMP data *could not identify
 
-ident0110
-		* is this BRA
+ident0110 * is this BRA
 		MOVE (A6),D3 *move the full opcode back into D3
 
 		* BRA?
@@ -209,8 +211,7 @@ ident0110
 
 		JMP data *could not identify
 
-ident1000
-		* is this DIVS/OR
+ident1000 * is this DIVS/OR
 		MOVE (A6),D3 *move the full opcode back into D3
 	    
         * DIVS?
@@ -223,22 +224,19 @@ ident1000
 
 		JMP data *could not identify
 
-ident1001
-		* is this SUB
+ident1001 * is this SUB
 		MOVE (A6),D3 *move the full opcode back into D3
 		
 		*TODO: figure out how to do SUB
 
 		JMP data *could not identify
 
-ident1011
-		* is this EOR/CMP
+ident1011 * is this EOR/CMP
 		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data
 
-ident1100
-		* is this MULS
+ident1100 * is this MULS
 		MOVE (A6),D3 *move the full opcode back into D3
 		
 		* MULS?
@@ -249,93 +247,213 @@ ident1100
 
 		JMP data *could not identify
 
-ident1101
-		* is this ADD/ADDA
+ident1101 * is this ADD/ADDA
 		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data
 		
 *****OPCODE IDENTIFIED*****
 
-dRTS
-		*this is RTS
+dRTS *this is RTS
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'R',(A7)+
+		MOVE.B 'T',(A7)+
+		MOVE.B 'S',(A7)+
 
 		JMP endIdent
-dNOP
-		*this is NOP
+		
+dNOP *this is NOP
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'N',(A7)+
+		MOVE.B 'O',(A7)+
+		MOVE.B 'P',(A7)+
 
 		JMP endIdent
-dORI
-		*this is ORI
+		
+dORI *this is ORI
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'O',(A7)+
+		MOVE.B 'R',(A7)+
+		MOVE.B 'I',(A7)+
 
 		JMP endIdent
-dCMPI
-		*this is CMPI
+		
+dCMPI *this is CMPI
+
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'C',(A7)+
+		MOVE.B 'M',(A7)+
+		MOVE.B 'P',(A7)+
+		MOVE.B 'I',(A7)+
 
 		JMP endIdent
-dBCLR
-		*this is BCLR
+		
+dBCLR *this is BCLR
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'B',(A7)+
+		MOVE.B 'C',(A7)+
+		MOVE.B 'L',(A7)+
+		MOVE.B 'R',(A7)+
 
 		JMP endIdent
-dNEG
-		*this is NEG
+		
+dNEG *this is NEG
+
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'N',(A7)+
+		MOVE.B 'E',(A7)+
+		MOVE.B 'G',(A7)+
+		
+		JMP endIdent
+		
+dJSR *this is JSR
+
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'J',(A7)+
+		MOVE.B 'S',(A7)+
+		MOVE.B 'R',(A7)+		
 
 		JMP endIdent
-dJSR
-		*this is JSR
+		
+dMOVEM *this is MOVEM
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'M',(A7)+
+		MOVE.B 'O',(A7)+
+		MOVE.B 'V',(A7)+
+		MOVE.B 'E',(A7)+
+        MOVE.B 'M',(A7)+		
 
 		JMP endIdent
-dMOVEM
-		*this is MOVEM
+		
+dLEA *this is LEA
+
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'L',(A7)+
+		MOVE.B 'E',(A7)+
+		MOVE.B 'A',(A7)+
+		
+		JMP endIdent
+		
+dSUBQ *this is SUBQ
+		
+        *add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'S',(A7)+
+		MOVE.B 'U',(A7)+
+		MOVE.B 'B',(A7)+
+		MOVE.B 'Q',(A7)+
 
 		JMP endIdent
-dLEA
-		*this is LEA
+		
+dBRA *this is BRA
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'B',(A7)+
+		MOVE.B 'R',(A7)+
+		MOVE.B 'A',(A7)+
 
 		JMP endIdent
-dSUBQ
-		*this is SUBQ
+		
+dDIVS *this is DIVS
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'D',(A7)+
+		MOVE.B 'I',(A7)+
+		MOVE.B 'V',(A7)+
+		MOVE.B 'S',(A7)+
 
 		JMP endIdent
-dBRA
-		*this is BRA
+		
+dOR *this is OR
+		
+        *add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'O',(A7)+
+		MOVE.B 'R',(A7)+
 
 		JMP endIdent
-dDIVS
-		*this is DIVS
+		
+dSUB *this is SUB
+
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'S',(A7)+
+		MOVE.B 'U',(A7)+
+		MOVE.B 'B',(A7)+
 
 		JMP endIdent
-dOR
-		*this is OR
+		
+dEOR *this is EOR
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'E',(A7)+
+		MOVE.B 'O',(A7)+
+		MOVE.B 'R',(A7)+
 
 		JMP endIdent
-dSUB
-		*this is SUB
+		
+dCMP *this is CMP
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'C',(A7)+
+		MOVE.B 'M',(A7)+
+		MOVE.B 'P',(A7)+
 
 		JMP endIdent
-dEOR
-		*this is EOR
+		
+dMULS *this is MULS
+		
+        *add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'M',(A7)+
+		MOVE.B 'U',(A7)+
+		MOVE.B 'L',(A7)+
+		MOVE.B 'S',(A7)+
 
 		JMP endIdent
-dCMP
-		*this is CMP
+		
+dADD *this is ADD
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'A',(A7)+
+		MOVE.B 'D',(A7)+
+		MOVE.B 'D',(A7)+
 
 		JMP endIdent
-dMULS
-		*this is MULS
-
-		JMP endIdent
-dADD
-		*this is ADD
-
-		JMP endIdent
-dADDA
-		*this is ADDA
+		
+dADDA *this is ADDA
+		
+		*add to buffer
+		MOVE.B ' ',(A7)+
+		MOVE.B 'A',(A7)+
+		MOVE.B 'D',(A7)+
+		MOVE.B 'D',(A7)+
+		MOVE.B 'A',(A7)+
 
 		JMP endIdent
 
 data
 		*print DATA
+		MOVE.B #1,D7 *set bad flag
 
 		JMP endIdent
 
@@ -596,6 +714,7 @@ byteRead            DS.B 1
 
 * I/O Variables.
 *Variables go here.
+printbuff DC.B 1
 
 * Opcode variables.
 chk0000				DC.W %0000000000000000
@@ -653,8 +772,6 @@ modeAbs_Long        DC.B %00111001      * (xxx).L
 modeImmediate       DC.B %00111100      * Immediate
 
 
-testOPCODE			DC.W %0100111010010100
-
 isolateNibbleMask   DC.W %1111000000000000
 
 TESTSTARTADDRESS	EQU $00004000
@@ -666,6 +783,8 @@ TESTENDADDRESS		EQU	$00005000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
 
 *~Font name~Courier New~
 *~Font size~10~
