@@ -91,6 +91,8 @@ method2:
 * Postconditions: TBD
 *********************************************************************************
 identifyOPCODE:
+
+*****IDENTIFY FIRST NIBBLE*****
 		MOVE.W (A6),D3 *move opcode to D3
 
         CMP.W RTS,D3 *check if the OP is rts
@@ -121,6 +123,9 @@ identifyOPCODE:
         CMP.W chk1101,D3
         BEQ ident1101
         JMP data
+
+
+*****IDENTIFY OPCODE FROM NIBBLE*****
 
 *TODO add case for MOVEA/MOVE
 
@@ -249,6 +254,8 @@ ident1101
 		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data
+		
+*****OPCODE IDENTIFIED*****
 
 dRTS
 		*this is RTS
