@@ -27,18 +27,22 @@ START:
     *   (2) how to build a (Callee-Saved) method
     *   (3) how to call that method using JSR (return with RTS)
     ***********************************************************
-    LEA MSG1, A1        ; buffer of chars to write
-    JSR TrapTask13
+    *LEA MSG1, A1        ; buffer of chars to write
+    *JSR TrapTask13
 
-    LEA MSG2, A1        ; buffer of chars to write
-    JSR TrapTask13
+    *LEA MSG2, A1        ; buffer of chars to write
+    *JSR TrapTask13
 
     **************************************************
     *Your disassembler code goes here
     **************************************************
 
     LEA testOPCODE,A6
+    MOVEA #printbuff,A5
     JSR identifyOPCODE
+    MOVE.B #0,(A5)
+    MOVEA #printbuff,A1
+    JSR TrapTask13
 
     ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
     ;load start and end address as longs
@@ -88,12 +92,13 @@ method2:
 *                 then branching off to identify opcode
 *
 * Preconditions:  A6 should contain the pointer to the next word after opcode.
-*                 A7 Should contain the pointer to the next space in good buffer.
-*                 D7 should contain the good/bad flag.
+*                 A5 Should contain the pointer to the next space in good buffer.
+*                 D6 should contain the good/bad flag.
 *
-* Postconditions: A7 will contain the pointer to the next space in the good buffer
-*                 D7 will contain the good/bad flag
-
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*                 D6 will contain the good/bad flag
+*                 D7 will contain mode and register bits 
+*
 * MODIFIES:       D3
 *********************************************************************************
 identifyOPCODE:
@@ -110,25 +115,25 @@ identifyOPCODE:
         AND.W isolateNibbleMask,D3 *isolate nibble by clearing the rest of the bits
 
         * check the first nibble and jump to the proper jumptable for that prefix
-        CMP.W chk0000,D3
+        CMP.W chk0000,D3 *0000
         BEQ ident0000
-        CMP.W chk0100,D3
+        CMP.W chk0100,D3 *0100
         BEQ ident0100
-        CMP.W chk0101,D3
+        CMP.W chk0101,D3 *0101
         BEQ ident0101
-        CMP.W chk0110,D3
+        CMP.W chk0110,D3 *0110
         BEQ ident0110
-        CMP.W chk1000,D3
+        CMP.W chk1000,D3 *1000
         BEQ ident1000
-        CMP.W chk1001,D3
+        CMP.W chk1001,D3 *1001
         BEQ ident1001
-        CMP.W chk1011,D3
+        CMP.W chk1011,D3 *1011
         BEQ ident1011
-        CMP.W chk1100,D3
+        CMP.W chk1100,D3 *1100
         BEQ ident1100
-        CMP.W chk1101,D3
+        CMP.W chk1101,D3 *1101
         BEQ ident1101
-        JMP data
+        JMP data         *data
 
 
 *****IDENTIFY OPCODE FROM NIBBLE*****
@@ -257,209 +262,299 @@ ident1101 * is this ADD/ADDA
 dRTS *this is RTS
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'R',(A7)+
-		MOVE.B 'T',(A7)+
-		MOVE.B 'S',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'R',(A5)+
+		MOVE.B #'T',(A5)+
+		MOVE.B #'S',(A5)+
 
 		JMP endIdent
 		
 dNOP *this is NOP
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'N',(A7)+
-		MOVE.B 'O',(A7)+
-		MOVE.B 'P',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'N',(A5)+
+		MOVE.B #'O',(A5)+
+		MOVE.B #'P',(A5)+
 
 		JMP endIdent
 		
 dORI *this is ORI
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'O',(A7)+
-		MOVE.B 'R',(A7)+
-		MOVE.B 'I',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'O',(A5)+
+		MOVE.B #'R',(A5)+
+		MOVE.B #'I',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
 		
 dCMPI *this is CMPI
 
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'C',(A7)+
-		MOVE.B 'M',(A7)+
-		MOVE.B 'P',(A7)+
-		MOVE.B 'I',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'C',(A5)+
+		MOVE.B #'M',(A5)+
+		MOVE.B #'P',(A5)+
+		MOVE.B #'I',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
 		
 dBCLR *this is BCLR
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'B',(A7)+
-		MOVE.B 'C',(A7)+
-		MOVE.B 'L',(A7)+
-		MOVE.B 'R',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'C',(A5)+
+		MOVE.B #'L',(A5)+
+		MOVE.B #'R',(A5)+
 
 		JMP endIdent
 		
 dNEG *this is NEG
 
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'N',(A7)+
-		MOVE.B 'E',(A7)+
-		MOVE.B 'G',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'N',(A5)+
+		MOVE.B #'E',(A5)+
+		MOVE.B #'G',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 		
 		JMP endIdent
 		
 dJSR *this is JSR
 
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'J',(A7)+
-		MOVE.B 'S',(A7)+
-		MOVE.B 'R',(A7)+		
+		MOVE.B #' ',(A5)+
+		MOVE.B #'J',(A5)+
+		MOVE.B #'S',(A5)+
+		MOVE.B #'R',(A5)+		
 
 		JMP endIdent
 		
 dMOVEM *this is MOVEM
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'M',(A7)+
-		MOVE.B 'O',(A7)+
-		MOVE.B 'V',(A7)+
-		MOVE.B 'E',(A7)+
-        MOVE.B 'M',(A7)+		
+		MOVE.B #' ',(A5)+
+		MOVE.B #'M',(A5)+
+		MOVE.B #'O',(A5)+
+		MOVE.B #'V',(A5)+
+		MOVE.B #'E',(A5)+
+        MOVE.B #'M',(A5)+		
 
 		JMP endIdent
 		
 dLEA *this is LEA
 
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'L',(A7)+
-		MOVE.B 'E',(A7)+
-		MOVE.B 'A',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'L',(A5)+
+		MOVE.B #'E',(A5)+
+		MOVE.B #'A',(A5)+
 		
 		JMP endIdent
 		
 dSUBQ *this is SUBQ
 		
         *add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'S',(A7)+
-		MOVE.B 'U',(A7)+
-		MOVE.B 'B',(A7)+
-		MOVE.B 'Q',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'S',(A5)+
+		MOVE.B #'U',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'Q',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer		
 
 		JMP endIdent
 		
 dBRA *this is BRA
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'B',(A7)+
-		MOVE.B 'R',(A7)+
-		MOVE.B 'A',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'R',(A5)+
+		MOVE.B #'A',(A5)+
 
 		JMP endIdent
 		
 dDIVS *this is DIVS
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'D',(A7)+
-		MOVE.B 'I',(A7)+
-		MOVE.B 'V',(A7)+
-		MOVE.B 'S',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'D',(A5)+
+		MOVE.B #'I',(A5)+
+		MOVE.B #'V',(A5)+
+		MOVE.B #'S',(A5)+
 
 		JMP endIdent
 		
 dOR *this is OR
 		
         *add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'O',(A7)+
-		MOVE.B 'R',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'O',(A5)+
+		MOVE.B #'R',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
 		
 dSUB *this is SUB
 
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'S',(A7)+
-		MOVE.B 'U',(A7)+
-		MOVE.B 'B',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'S',(A5)+
+		MOVE.B #'U',(A5)+
+		MOVE.B #'B',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
 		
 dEOR *this is EOR
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'E',(A7)+
-		MOVE.B 'O',(A7)+
-		MOVE.B 'R',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'E',(A5)+
+		MOVE.B #'O',(A5)+
+		MOVE.B #'R',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
 		
 dCMP *this is CMP
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'C',(A7)+
-		MOVE.B 'M',(A7)+
-		MOVE.B 'P',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'C',(A5)+
+		MOVE.B #'M',(A5)+
+		MOVE.B #'P',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
 		
 dMULS *this is MULS
 		
         *add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'M',(A7)+
-		MOVE.B 'U',(A7)+
-		MOVE.B 'L',(A7)+
-		MOVE.B 'S',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'M',(A5)+
+		MOVE.B #'U',(A5)+
+		MOVE.B #'L',(A5)+
+		MOVE.B #'S',(A5)+
 
 		JMP endIdent
 		
 dADD *this is ADD
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'A',(A7)+
-		MOVE.B 'D',(A7)+
-		MOVE.B 'D',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'A',(A5)+
+		MOVE.B #'D',(A5)+
+		MOVE.B #'D',(A5)+
+		
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
 		
 dADDA *this is ADDA
 		
 		*add to buffer
-		MOVE.B ' ',(A7)+
-		MOVE.B 'A',(A7)+
-		MOVE.B 'D',(A7)+
-		MOVE.B 'D',(A7)+
-		MOVE.B 'A',(A7)+
+		MOVE.B #' ',(A5)+
+		MOVE.B #'A',(A5)+
+		MOVE.B #'D',(A5)+
+		MOVE.B #'D',(A5)+
+		MOVE.B #'A',(A5)+
 
 		JMP endIdent
 
 data
 		*print DATA
-		MOVE.B #1,D7 *set bad flag
+		MOVE.B #1,D6 *set bad flag
 
 		JMP endIdent
 
 endIdent
         RTS
+        
+*********************************************************************************
+* Method Name: identifyOPSIZE
+* Description:    Determines the size of the operation decoded and appends it to the printstream
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*                 A6 should contain the pointer to the opcode
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*                 The size of the operation will be appended to the printbuffer ('.B','.W','L')
+*                 D6 bad flag will be set if size cannot be determined
+*
+* MODIFIES:       D3
+*********************************************************************************
+identifyOPSIZE:
+*****IDENTIFY SIZE*****
 
+decodesize
+
+        * byte?
+        MOVE.W (A6),D3 *move opcode into D3
+        AND.W SIZEISO, D3 *isolate size bits
+        CMP.W BSIZECHECK,D3 *is this byte?
+        BEQ dBYTE
+        
+        * word?
+        MOVE.W (A6),D3 *move opcode into D3
+        AND.W SIZEISO, D3 *isolate size bits
+        CMP.W WSIZECHECK,D3 *is this word?
+        BEQ dWORD
+        
+        * long?
+        MOVE.W (A6),D3 *move opcode into D3
+        AND.W SIZEISO, D3 *isolate size bits
+        CMP.W LSIZECHECK,D3 *is this long?
+        BEQ dLONG
+        
+        * size could not be determined
+        JMP sizeidenterror
+        
+*****SIZE IDENTIFIED*****
+        
+dBYTE *this is byte
+
+        *add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'B',(A5)+
+		
+        JMP endidentsize
+
+dWORD *this is word
+		
+        *add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'W',(A5)+
+
+        JMP endidentsize
+        
+dLONG *this is looong
+		
+        *add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'L',(A5)+
+        
+        JMP endidentsize
+
+sizeidenterror
+
+        MOVE.B #1,D6
+
+endidentsize
+
+        RTS
 *********************************************************************************
 ********************************* EA Section ************************************
 *********************************************************************************
@@ -474,11 +569,11 @@ endIdent
 * Preconditions:  * D6 Should contain the 6 bits from EA field of opcode, within
 *                   The first byte.
 *                 * A6 should contain the pointer to the next word after opcode.
-*                 * A7 Should contain the pointer to the next space in good buffer.
+*                 * A5 Should contain the pointer to the next space in good buffer.
 *                 * D7 should contain the good/bad flag.
 *
 * Postconditions: * Sets the memory pointer to the next word after EA at A6.
-*                 * Sets the pointer to next available space in good buffer at A7.
+*                 * Sets the pointer to next available space in good buffer at A5.
 *                 * Sets the good/bad flag at D6.
 *********************************************************************************
 decodeEA:
@@ -714,7 +809,7 @@ byteRead            DS.B 1
 
 * I/O Variables.
 *Variables go here.
-printbuff DC.B 1
+printbuff           EQU $4000
 
 * Opcode variables.
 chk0000				DC.W %0000000000000000
@@ -791,6 +886,8 @@ TESTENDADDRESS		EQU	$00005000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
 
 
 
