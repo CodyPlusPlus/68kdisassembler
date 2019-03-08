@@ -1,6 +1,6 @@
 *--------------------------------------------------------------------------
-* Title      : Disassembler Skeleton
-* Written by : Cody Stuck
+* Title      : Disassembler (Some Assembly Required)
+* Written by : Cody Stuck, ___, ___
 * Date       :
 *
 * Description: This code contains a method for you to use
@@ -14,7 +14,7 @@
 *   -Don't rename or edit the IO method I've provided you with here
 *   -Don't rename the config.cfg file or change the file format:
 *    <Long_StartAddress>\CR\LF
-*    <Long_EndAddress>\CR\LF<EOF>
+*    <Long_En ress>\CR\LF<EOF>
 *---------------------------------------------------------------------------
     ORG    $1000    *Don't change this; see hints and tips above
 *---------------------------------------------------------------------------
@@ -37,12 +37,12 @@ START:
     *Your disassembler code goes here
     **************************************************
 
-    MOVE.B #%00000011, D7
-    MOVEA #printbuff,A5
-    JSR decodeEA
-    MOVE.B #0,(A5)
-    MOVEA #printbuff,A1
-    JSR TrapTask13
+    *MOVE.B #%00000011, D7
+    *MOVEA #printbuff,A5
+    *JSR decodeEA
+    *MOVE.B #0,(A5)
+    *MOVEA #printbuff,A1
+    *JSR TrapTask13
 
     *LEA testOPCODE,A6
     *MOVEA #printbuff,A5
@@ -50,6 +50,13 @@ START:
     *MOVE.B #0,(A5)
     *MOVEA #printbuff,A1
     *JSR TrapTask13
+    
+    LEA testOPCODE,A6
+    MOVEA #printbuff,A5
+    JSR identifyOPCODE
+    MOVE.B #0,(A5)
+    MOVEA #printbuff,A1
+    JSR TrapTask13
 
     ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
     ;load start and end address as longs
@@ -140,12 +147,18 @@ identifyOPCODE:
         BEQ ident1100
         CMP.W chk1101,D3 *1101
         BEQ ident1101
+        CMP.W chk0001,D3 *MOVE_A.B
+        BEQ identMOVE_A
+        CMP.W chk0011,D3 *MOVE_A.W
+        BEQ identMOVE_A
+        CMP.W chk0010,D3 *MOVE_A.L
+        BEQ identMOVE_A
         JMP data         *data
 
 
 *****IDENTIFY OPCODE FROM NIBBLE*****
 
-*TODO add case for MOVEA/MOVE
+*TODO 
 
 ident0000 * is this ORI/CMPI/BCLR
 		MOVE (A6),D3 *move the full opcode back into D3
@@ -261,10 +274,69 @@ ident1100 * is this MULS
 
 ident1101 * is this ADD/ADDA
 		MOVE (A6),D3 *move the full opcode back into D3
+		
+		AND.W ADDAISO,D3 *clear irrelevant bits
+		CMP.W ADDACHK,D3 *compare to identity
+		BEQ dADDA *match?
+		MOVE (A6),D3 *move the full opcode back into D3
+		
+		* assume ADD
+		JMP dADD
 
 		JMP data
+		
+identMOVE_A *is this MOVE/MOVEA
+		MOVE (A6),D3
+		
+		* MOVEA?
+		AND.W MOVEAISO,D3 *clear irrelevant bits
+		CMP.W MOVEACHK,D3 *compare to identity
+		BEQ dMOVEA	
+
+		* ASSUME MOVE	
+		JMP dMOVE
+
 
 *****OPCODE IDENTIFIED*****
+
+dLSL *this is LSL
+
+dLSR *this is LSR
+
+dASR *this is ASR
+
+dASL *this is ASL
+
+dROL *this is dROL
+
+dROR *this is dROR
+
+dMOVEA *this is MOVEA
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'M',(A5)+
+		MOVE.B #'O',(A5)+
+		MOVE.B #'V',(A5)+
+		MOVE.B #'E',(A5)+
+		MOVE.B #'A',(A5)+
+		
+		JMP identifyMOVE_ASIZE
+		
+		JMP endIdent
+
+dMOVE *this is MOVE
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'M',(A5)+
+		MOVE.B #'O',(A5)+
+		MOVE.B #'V',(A5)+
+		MOVE.B #'E',(A5)+
+		
+		JMP identifyMOVE_ASIZE
+		
+		JMP endIdent
 
 dRTS *this is RTS
 
@@ -478,7 +550,9 @@ dADDA *this is ADDA
 		MOVE.B #'D',(A5)+
 		MOVE.B #'D',(A5)+
 		MOVE.B #'A',(A5)+
-
+		
+		JSR identADDAsize
+		
 		JMP endIdent
 
 data
@@ -490,6 +564,84 @@ data
 endIdent
         RTS
 
+*********************************************************************************
+* Method Name: identADDAsize
+* Description:    adds the size of the ADDA op to the buffer
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*			      A6 should contain the pointer to the opcode
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*				  the size of the operation will be appended to the buffer
+*
+* MODIFIES:       D3
+*				  D5
+*********************************************************************************
+identADDAsize:
+		MOVE (A6),D3 *move the full opcode back into D3
+		AND.W ADDASIZECHK,D3
+		CMP.W ADDASIZECHK,D3
+		BEQ ADDAL
+		JMP ADDAW
+ADDAW
+		JSR addWbuff
+		JMP endidentADDAsize
+
+ADDAL
+		JSR addLbuff
+		JMP endidentADDAsize
+
+endidentADDAsize
+	
+		RTS
+*********************************************************************************
+* Method Name: addBbuff
+* Description:    adds B to buff
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*				  .B will be added to the buffer
+*
+* MODIFIES:       A5
+*********************************************************************************
+addBbuff:
+	    *add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'B',(A5)+
+		RTS
+*********************************************************************************
+* Method Name: addWbuff
+* Description:    adds W to buff
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*				  .B will be added to the buffer
+*
+* MODIFIES:       A5
+*********************************************************************************
+addWbuff:
+	    *add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'W',(A5)+
+		RTS 
+*********************************************************************************
+* Method Name: addLbuff
+* Description:    adds L to buff
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*				  .L will be added to the buffer
+*
+* MODIFIES:       A5
+*********************************************************************************
+addLbuff:
+	    *add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'L',(A5)+
+		RTS 
 *********************************************************************************
 * Method Name: identifyOPSIZE
 * Description:    Determines the size of the operation decoded and appends it to the printstream
@@ -503,8 +655,9 @@ endIdent
 *
 * MODIFIES:       D3
 *********************************************************************************
-identifyOPSIZE:
+
 *****IDENTIFY SIZE*****
+identifyOPSIZE:
 
 decodesize
 
@@ -534,24 +687,21 @@ decodesize
 dBYTE *this is byte
 
         *add to buffer
-		MOVE.B #'.',(A5)+
-		MOVE.B #'B',(A5)+
+		JSR addBbuff
 
         JMP endidentsize
 
 dWORD *this is word
 
         *add to buffer
-		MOVE.B #'.',(A5)+
-		MOVE.B #'W',(A5)+
+		JSR addWbuff
 
         JMP endidentsize
 
 dLONG *this is looong
 
         *add to buffer
-		MOVE.B #'.',(A5)+
-		MOVE.B #'L',(A5)+
+		JSR addLbuff
 
         JMP endidentsize
 
@@ -562,6 +712,76 @@ sizeidenterror
 endidentsize
 
         RTS
+        
+*********************************************************************************
+* Method Name: identifyMOVE_ASIZE
+* Description:    Determines the size of the MOVE_A operation and appends it to the printstream
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*                 A6 should contain the pointer to the opcode
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*                 The size of the operation will be appended to the printbuffer ('.B','.W','L')
+*                 D6 bad flag will be set if size cannot be determined
+*
+* MODIFIES:       D3
+*********************************************************************************
+
+*****IDENTIFY SIZE*****
+identifyMOVE_ASIZE:
+
+        * byte?
+        MOVE.W (A6),D3 *move opcode into D3
+        AND.W MOVE_A_SIZEISO, D3 *isolate size bits
+        CMP.W MOVE_A_BSIZECHECK,D3 *is this byte?
+        BEQ dMOVE_ABYTE
+
+        * word?
+        MOVE.W (A6),D3 *move opcode into D3
+        AND.W MOVE_A_SIZEISO, D3 *isolate size bits
+        CMP.W MOVE_A_WSIZECHECK,D3 *is this word?
+        BEQ dMOVE_AWORD
+
+        * long?
+        MOVE.W (A6),D3 *move opcode into D3
+        AND.W MOVE_A_SIZEISO, D3 *isolate size bits
+        CMP.W MOVE_A_LSIZECHECK,D3 *is this long?
+        BEQ dMOVE_ALONG
+
+        * size could not be determined (this should not happen.)
+        JMP MOVE_Asizeidenterror
+        
+*****SIZE IDENTIFIED*****
+
+dMOVE_ABYTE * this is BYTE
+
+        *add to buffer
+		JSR addBbuff
+
+        JMP endMOVE_Aidentsize
+
+dMOVE_AWORD * this is WORD
+
+        *add to buffer
+		JSR addWbuff
+
+        JMP endMOVE_Aidentsize
+
+dMOVE_ALONG * this is LONG
+
+        *add to buffer
+		JMP addLbuff
+
+        JMP endMOVE_Aidentsize
+
+MOVE_Asizeidenterror
+
+		MOVE.B #1,D6
+		
+endMOVE_Aidentsize
+
+		RTS
+
 *********************************************************************************
 ********************************* EA Section ************************************
 *********************************************************************************
@@ -949,9 +1169,16 @@ chk1011				DC.W %1011000000000000
 chk1100				DC.W %1100000000000000
 chk1101				DC.W %1101000000000000
 
+chk0001				DC.W %0001000000000000
+chk0011				DC.W %0011000000000000
+chk0010				DC.W %0010000000000000
+
 RTS					DC.W %0100111001110101
 JSRMASK				DC.W %0100111010000000
 NOP					DC.W %0100111001110001
+
+MOVEAISO			DC.W %0000000111000000
+MOVEACHK			DC.W %0000000001000000
 
 ORIISO              DC.W %0000111100000000
 ORICHK              DC.W %0000000000000000
@@ -972,6 +1199,10 @@ MULSCHK             DC.W %0000000111000000
 DIVSISO             DC.W %0000000111000000
 DIVSCHK             DC.W %0000000111000000
 
+ADDAISO             DC.W %0000000011000000
+ADDACHK             DC.W %0000000011000000
+ADDASIZECHK			DC.W %0000000100000000
+
 NEGISO              DC.W %0000111100000000
 NEGCHK              DC.W %0000010000000000
 JSRISO              DC.W %0000111111000000
@@ -986,7 +1217,12 @@ BSIZECHECK          DC.W %0000000000000000
 WSIZECHECK          DC.W %0000000001000000
 LSIZECHECK          DC.W %0000000010000000
 
-testOPCODE          DC.W %0000110010000000
+MOVE_A_SIZEISO      DC.W %0011000000000000
+MOVE_A_BSIZECHECK   DC.W %0001000000000000
+MOVE_A_WSIZECHECK   DC.W %0011000000000000
+MOVE_A_LSIZECHECK   DC.W %0010000000000000
+
+testOPCODE          DC.W %1101000011000000
 
 
 * Ea variables.
@@ -1013,6 +1249,8 @@ TESTENDADDRESS		EQU	$00005000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
 
 
 
