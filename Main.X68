@@ -37,12 +37,19 @@ START:
     *Your disassembler code goes here
     **************************************************
 
-    LEA testOPCODE,A6
+    MOVE.B #%00000011, D7
     MOVEA #printbuff,A5
-    JSR identifyOPCODE
+    JSR decodeEA
     MOVE.B #0,(A5)
     MOVEA #printbuff,A1
     JSR TrapTask13
+
+    *LEA testOPCODE,A6
+    *MOVEA #printbuff,A5
+    *JSR identifyOPCODE
+    *MOVE.B #0,(A5)
+    *MOVEA #printbuff,A1
+    *JSR TrapTask13
 
     ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
     ;load start and end address as longs
@@ -97,7 +104,7 @@ method2:
 *
 * Postconditions: A5 will contain the pointer to the next space in the good buffer
 *                 D6 will contain the good/bad flag
-*                 D7 will contain mode and register bits 
+*                 D7 will contain mode and register bits
 *
 * MODIFIES:       D3
 *********************************************************************************
@@ -142,38 +149,38 @@ identifyOPCODE:
 
 ident0000 * is this ORI/CMPI/BCLR
 		MOVE (A6),D3 *move the full opcode back into D3
-		
+
 		* ORI?
 		AND.W ORIISO,D3 *clear irrelevant bits
 		CMP.W #ORICHK,D3 *compare to identity
 		BEQ dORI *match?
 		MOVE (A6),D3 *move the full opcode back into D3
-		
+
 		* CMPI?
 		AND.W CMPIISO,D3 *clear irrelevant bits
 		CMP.W CMPICHK,D3 *compare to identity
 		BEQ dCMPI *match?
-		MOVE (A6),D3 *move the full opcode back into D3		
-		
+		MOVE (A6),D3 *move the full opcode back into D3
+
 		* BCLR?
 		AND.W BCLRISO,D3 *clear irrelevant bits
 		CMP.W BCLRCHK,D3 *compare to identity
 		BEQ dBCLR *match?
-		MOVE (A6),D3 *move the full opcode back into D3	
+		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data *could not identify
 
 ident0100 * is this NEG/RTS/JSR/MOVEM/LEA
 		MOVE (A6),D3 *move the full opcode back into D3
-		
+
 		*RTS has already been checked
-		
+
 		* NEG?
 		AND.W NEGISO,D3 *clear irrelevant bits
 		CMP.W NEGCHK,D3 *compare to identity
 		BEQ dNEG *match?
-		MOVE (A6),D3 *move the full opcode back into D3	
-		
+		MOVE (A6),D3 *move the full opcode back into D3
+
 		* JSR?
 		AND.W JSRISO,D3 *clear irrelevant bits
 		CMP.W JSRCHK,D3 *compare to identity
@@ -184,19 +191,19 @@ ident0100 * is this NEG/RTS/JSR/MOVEM/LEA
 		AND.W MOVEMISO,D3 *clear irrelevant bits
 		CMP.W MOVEMCHK,D3 *compare to identity
 		BEQ dMOVEM *match?
-		MOVE (A6),D3 *move the full opcode back into D3				
-		
+		MOVE (A6),D3 *move the full opcode back into D3
+
 		* LEA?
 		AND.W LEAISO,D3 *clear irrelevant bits
 		CMP.W LEACHK,D3 *compare to identity
 		BEQ dLEA *match?
-		MOVE (A6),D3 *move the full opcode back into D3			
+		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data *could not identify
 
 ident0101 * is this SUBQ
 		MOVE (A6),D3 *move the full opcode back into D3
-		
+
 		* SUBQ?
 		AND.W SUBQISO,D3 *clear irrelevant bits
 		CMP.W SUBQCHK,D3 *compare to identity
@@ -218,20 +225,20 @@ ident0110 * is this BRA
 
 ident1000 * is this DIVS/OR
 		MOVE (A6),D3 *move the full opcode back into D3
-	    
+
         * DIVS?
 		AND.W DIVSISO,D3 *clear irrelevant bits
 		CMP.W DIVSCHK,D3 *compare to identity
 		BEQ dDIVS *match?
 		MOVE (A6),D3 *move the full opcode back into D3
-		
+
 		*TODO: figure out how to do OR
 
 		JMP data *could not identify
 
 ident1001 * is this SUB
 		MOVE (A6),D3 *move the full opcode back into D3
-		
+
 		*TODO: figure out how to do SUB
 
 		JMP data *could not identify
@@ -243,7 +250,7 @@ ident1011 * is this EOR/CMP
 
 ident1100 * is this MULS
 		MOVE (A6),D3 *move the full opcode back into D3
-		
+
 		* MULS?
 		AND.W MULSISO,D3 *clear irrelevant bits
 		CMP.W MULSCHK,D3 *compare to identity
@@ -256,11 +263,11 @@ ident1101 * is this ADD/ADDA
 		MOVE (A6),D3 *move the full opcode back into D3
 
 		JMP data
-		
+
 *****OPCODE IDENTIFIED*****
 
 dRTS *this is RTS
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'R',(A5)+
@@ -268,9 +275,9 @@ dRTS *this is RTS
 		MOVE.B #'S',(A5)+
 
 		JMP endIdent
-		
+
 dNOP *this is NOP
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'N',(A5)+
@@ -278,19 +285,19 @@ dNOP *this is NOP
 		MOVE.B #'P',(A5)+
 
 		JMP endIdent
-		
+
 dORI *this is ORI
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'O',(A5)+
 		MOVE.B #'R',(A5)+
 		MOVE.B #'I',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dCMPI *this is CMPI
 
 		*add to buffer
@@ -299,13 +306,13 @@ dCMPI *this is CMPI
 		MOVE.B #'M',(A5)+
 		MOVE.B #'P',(A5)+
 		MOVE.B #'I',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dBCLR *this is BCLR
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'B',(A5)+
@@ -314,7 +321,7 @@ dBCLR *this is BCLR
 		MOVE.B #'R',(A5)+
 
 		JMP endIdent
-		
+
 dNEG *this is NEG
 
 		*add to buffer
@@ -322,33 +329,33 @@ dNEG *this is NEG
 		MOVE.B #'N',(A5)+
 		MOVE.B #'E',(A5)+
 		MOVE.B #'G',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
-		
+
 		JMP endIdent
-		
+
 dJSR *this is JSR
 
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'J',(A5)+
 		MOVE.B #'S',(A5)+
-		MOVE.B #'R',(A5)+		
+		MOVE.B #'R',(A5)+
 
 		JMP endIdent
-		
+
 dMOVEM *this is MOVEM
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'M',(A5)+
 		MOVE.B #'O',(A5)+
 		MOVE.B #'V',(A5)+
 		MOVE.B #'E',(A5)+
-        MOVE.B #'M',(A5)+		
+        MOVE.B #'M',(A5)+
 
 		JMP endIdent
-		
+
 dLEA *this is LEA
 
 		*add to buffer
@@ -356,24 +363,24 @@ dLEA *this is LEA
 		MOVE.B #'L',(A5)+
 		MOVE.B #'E',(A5)+
 		MOVE.B #'A',(A5)+
-		
+
 		JMP endIdent
-		
+
 dSUBQ *this is SUBQ
-		
+
         *add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'S',(A5)+
 		MOVE.B #'U',(A5)+
 		MOVE.B #'B',(A5)+
 		MOVE.B #'Q',(A5)+
-		
-		JSR identifyOPSIZE *identify size of operation and add to buffer		
+
+		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dBRA *this is BRA
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'B',(A5)+
@@ -381,9 +388,9 @@ dBRA *this is BRA
 		MOVE.B #'A',(A5)+
 
 		JMP endIdent
-		
+
 dDIVS *this is DIVS
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'D',(A5)+
@@ -392,18 +399,18 @@ dDIVS *this is DIVS
 		MOVE.B #'S',(A5)+
 
 		JMP endIdent
-		
+
 dOR *this is OR
-		
+
         *add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'O',(A5)+
 		MOVE.B #'R',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dSUB *this is SUB
 
 		*add to buffer
@@ -411,37 +418,37 @@ dSUB *this is SUB
 		MOVE.B #'S',(A5)+
 		MOVE.B #'U',(A5)+
 		MOVE.B #'B',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dEOR *this is EOR
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'E',(A5)+
 		MOVE.B #'O',(A5)+
 		MOVE.B #'R',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dCMP *this is CMP
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'C',(A5)+
 		MOVE.B #'M',(A5)+
 		MOVE.B #'P',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dMULS *this is MULS
-		
+
         *add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'M',(A5)+
@@ -450,21 +457,21 @@ dMULS *this is MULS
 		MOVE.B #'S',(A5)+
 
 		JMP endIdent
-		
+
 dADD *this is ADD
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'A',(A5)+
 		MOVE.B #'D',(A5)+
 		MOVE.B #'D',(A5)+
-		
+
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
 		JMP endIdent
-		
+
 dADDA *this is ADDA
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'A',(A5)+
@@ -482,7 +489,7 @@ data
 
 endIdent
         RTS
-        
+
 *********************************************************************************
 * Method Name: identifyOPSIZE
 * Description:    Determines the size of the operation decoded and appends it to the printstream
@@ -506,46 +513,46 @@ decodesize
         AND.W SIZEISO, D3 *isolate size bits
         CMP.W BSIZECHECK,D3 *is this byte?
         BEQ dBYTE
-        
+
         * word?
         MOVE.W (A6),D3 *move opcode into D3
         AND.W SIZEISO, D3 *isolate size bits
         CMP.W WSIZECHECK,D3 *is this word?
         BEQ dWORD
-        
+
         * long?
         MOVE.W (A6),D3 *move opcode into D3
         AND.W SIZEISO, D3 *isolate size bits
         CMP.W LSIZECHECK,D3 *is this long?
         BEQ dLONG
-        
+
         * size could not be determined
         JMP sizeidenterror
-        
+
 *****SIZE IDENTIFIED*****
-        
+
 dBYTE *this is byte
 
         *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'B',(A5)+
-		
+
         JMP endidentsize
 
 dWORD *this is word
-		
+
         *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'W',(A5)+
 
         JMP endidentsize
-        
+
 dLONG *this is looong
-		
+
         *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'L',(A5)+
-        
+
         JMP endidentsize
 
 sizeidenterror
@@ -575,9 +582,14 @@ endidentsize
 * Postconditions: * Sets the memory pointer to the next word after EA at A6.
 *                 * Sets the pointer to next available space in good buffer at A5.
 *                 * Sets the good/bad flag at D6.
+*
+* Modifies: * D5
+*           * D6
+*           * A5
+*           * A6
 *********************************************************************************
 decodeEA:
-        MOVE.B D6,D5                           *Bit mask the 3 bits in the middle
+        MOVE.B D7,D5                           *Bit mask the 3 bits in the middle
         AND.B #%00111000, D5
 
         CMP.B modeAn, D5                       *Check every supported mode based
@@ -602,27 +614,73 @@ decodeEA:
 
 * For decoding An
 decodeAn
-        *TODO: Write proper data to buffer, and set flag.
+        MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
+        AND.B #%00000111, D5
+        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+		MOVE.B #'A', (A5)+
+		MOVE.B D5, (A5)+
+        MOVE.B #' ', (A5)+
+
         JMP endEaDecode
 
 * For decoding Dn
 decodeDn
-        *TODO: Write proper data to buffer, and set flag.
+        MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
+        AND.B #%00000111, D5
+        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+		MOVE.B #'D', (A5)+
+		MOVE.B D5, (A5)+
+        MOVE.B #' ', (A5)+
+
         JMP endEaDecode
 
 * For decoding (Ad)
 decodeAd
-        *TODO: Write proper data to buffer, and set flag.
+        MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
+        AND.B #%00000111, D5
+        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'(', (A5)+
+		MOVE.B #'A', (A5)+
+		MOVE.B D5, (A5)+
+        MOVE.B #')', (A5)+
+        MOVE.B #' ', (A5)+
+
         JMP endEaDecode
 
 * For decoding (Ad)+
 decodeAd_Increment
-        *TODO: Write proper data to buffer, and set flag.
+        MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
+        AND.B #%00000111, D5
+        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'(', (A5)+
+        MOVE.B #'A', (A5)+
+        MOVE.B D5, (A5)+
+        MOVE.B #')', (A5)+
+        MOVE.B #'+', (A5)+
+        MOVE.B #' ', (A5)+
         JMP endEaDecode
 
 *For decoding -(Ad)
 decodeAd_Decrement
-        *TODO: Write proper data to buffer, and set flag.
+        MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
+        AND.B #%00000111, D5
+        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'-', (A5)+
+        MOVE.B #'(', (A5)+
+        MOVE.B #'A', (A5)+
+        MOVE.B D5, (A5)+
+        MOVE.B #')', (A5)+
+        MOVE.B #' ', (A5)+
         JMP endEaDecode
 
 *For finding out which of the ((xxx).w and (xxx).l and immediate.) were referenced.
@@ -643,7 +701,17 @@ decode111
 
 *For decoding (xxx).W
 decodeAbs_Word
-        *TODO: Write proper data to buffer, and set flag.
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'$', (A5)+
+
+        MOVE.W (A6)+, D5
+
+        MOVE.B D5, (A5)+
+        MOVE.B #'.', (A5)+
+        MOVE.B #'W', (A5)+
+        MOVE.B #' ', (A5)+
+
         JMP endEaDecode
 
 *For decoding (xxx).L
@@ -658,11 +726,12 @@ decodeImmediate
 
 *If none of the valid modes were detetected, it comes here.
 invalidEA
-        *TODO: Set the invalid flag.
-        JMP endEaDecode
+        MOVE.B #1, D6                       *Set the bad flag.
+        RTS
 
 *All the sections come here after the execution of their codes.
 endEaDecode
+        MOVE.B #0, D6                       *Set the good flag.
         RTS
 
 *********************************************************************************
@@ -796,6 +865,65 @@ countDone:
 
     RTS
 
+*----------------------------------------------------------------------------------
+* Method Name: AsciiToHex
+* Written by : Berger, Modified by Nash
+* Date       : 3/1/2019
+* Description: Converts chars '0'-'9' and 'a'-'f' to 0-9,a-F
+*              Transforms/unpacks 8 chars (8b each) pointed to by A1 into
+*              its (4b each) equivalent hex value
+*
+*  Preconditions & Input
+*       A1 (input) points to a memory buffer holding 8 ascii chars (not null-terminated)
+*       This function calls another function (strip_ascii)
+*
+*  Postconditions & Output
+*       D7 (output) holds the converted value
+*       Caller-Saved : D0 is temp, D6 is a loop var
+*----------------------------------------------------------------------------------
+AsciiToHexRegList REG D0,D6
+AsciiToHex
+    MOVEM.L asciiToHexRegList, -(SP)  *save context
+    CLR.L D7 * clear our return value
+    MOVE.L #8, D6 ; and set up our loop counter
+
+chrLoop
+    MOVE.B (A1)+,D0 * Get the first byte
+    jsr strip_ascii * Get rid of the ascii code
+    OR.W D0,D7 * Load the bits into D7
+
+    subI.B #1,D6  *decrement our loop variable
+    BEQ chrDone   *skip shifting if we are done
+
+    ASL.L #4,D7 * shift left 4 bits to prepare for next byte
+    BRA chrLoop
+
+chrDone
+    MOVEM.L (SP)+,asciiToHexRegList
+    RTS
+
+**********************************************************************
+* SUBROUTINE: strip_ascii
+* remove the ascii code from the digits 0-9,a-f, or A-F
+* Input Parameters: <D0> = ascii code
+*
+* Return parameters: D0.B = number 0...F, returned as 00...0F
+* Registers used internally: D0
+* Assumptions: D0 contains $30-$39, $41-$46 or $61-66
+*
+***********************************************************************
+strip_ascii
+      CMP.B #$39,D0 * Is it in range of 0-9?
+      BLE sub30 * Its a number
+      CMP.B #$46,D0 * Is is A...F?
+      BLE sub37 * Its A...F
+      SUB.B #$57,D0 * Its a...f
+      BRA ret_sa * Go back
+sub37 SUB.B #$37,D0 * Strip 37
+      BRA ret_sa * Go back
+sub30 SUB.B #$30,D0 * Strip 30
+ret_sa RTS * Go back
+
 * Required variables and constants go here for your Disassembler
 CR                  EQU $0D
 LF                  EQU $0A
@@ -804,8 +932,7 @@ MSG1                DC.B 'DATA',0
 MSG2                DC.B 'NOP',0
 outFilename         DC.B 'Output.txt',0
 byteRead            DS.B 1
-
-
+ascii_val           DC.B $31,$41,$30,$30,$31,$41,$30,$30 * Test value $1A001A00
 
 * I/O Variables.
 *Variables go here.
@@ -837,7 +964,7 @@ SUBQISO             DC.W %0000000100000000
 SUBQCHK             DC.W %0000000100000000
 
 BRAISO              DC.W %0000111100000000
-BRACHK              DC.W %0000000000000000   
+BRACHK              DC.W %0000000000000000
 
 MULSISO             DC.W %0000000110000000
 MULSCHK             DC.W %0000000111000000
