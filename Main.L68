@@ -1,0 +1,1014 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.16.01
+Created On: 3/6/2019 11:20:54 PM
+
+00000000                             1  *--------------------------------------------------------------------------
+00000000                             2  * Title      : Disassembler Skeleton
+00000000                             3  * Written by : Cody Stuck
+00000000                             4  * Date       :
+00000000                             5  *
+00000000                             6  * Description: This code contains a method for you to use
+00000000                             7  * with your Disassembler project IO, and a short demo of
+00000000                             8  * how to call this method in the body of the "START" code.
+00000000                             9  *
+00000000                            10  * Hints and Tips:
+00000000                            11  *   -Follow the code commenting convention here for file & method headers
+00000000                            12  *   -Don't rename this file name (Main.X68)
+00000000                            13  *   -Don't r g the start address ($1000)
+00000000                            14  *   -Don't rename or edit the IO method I've provided you with here
+00000000                            15  *   -Don't rename the config.cfg file or change the file format:
+00000000                            16  *    <Long_StartAddress>\CR\LF
+00000000                            17  *    <Long_EndAddress>\CR\LF<EOF>
+00000000                            18  *---------------------------------------------------------------------------
+00001000                            19      ORG    $1000    *Don't change this; see hints and tips above
+00001000                            20  *---------------------------------------------------------------------------
+00001000                            21  START:
+00001000                            22  
+00001000                            23      ***********************************************************
+00001000                            24      * Code demo for printing strings to console & file is here
+00001000                            25      * Pay close attention to:
+00001000                            26      *   (1) the detailed comments,
+00001000                            27      *   (2) how to build a (Callee-Saved) method
+00001000                            28      *   (3) how to call that method using JSR (return with RTS)
+00001000                            29      ***********************************************************
+00001000                            30      *LEA MSG1, A1        ; buffer of chars to write
+00001000                            31      *JSR TrapTask13
+00001000                            32  
+00001000                            33      *LEA MSG2, A1        ; buffer of chars to write
+00001000                            34      *JSR TrapTask13
+00001000                            35  
+00001000                            36      **************************************************
+00001000                            37      *Your disassembler code goes here
+00001000                            38      **************************************************
+00001000                            39  
+00001000  4DF9 000015C2             40      LEA testOPCODE,A6
+00001006  3A7C 4000                 41      MOVEA #printbuff,A5
+0000100A  4EB9 0000102A             42      JSR identifyOPCODE
+00001010  1ABC 0000                 43      MOVE.B #0,(A5)
+00001014  327C 4000                 44      MOVEA #printbuff,A1
+00001018  4EB9 000014C8             45      JSR TrapTask13
+0000101E                            46  
+0000101E                            47      ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
+0000101E                            48      ;load start and end address as longs
+0000101E                            49  
+0000101E                            50      ;loop from start to end, printing out the instruction or DATA if not recognized
+0000101E                            51      ;   use my method below (printStringToFileAndConsole) to print out the individual instruction (or DATA)
+0000101E                            52  
+0000101E  FFFF FFFF                 53      SIMHALT
+00001022                            54  
+00001022                            55  *********************************************************************************
+00001022                            56  * Method Name: yourDisassemblerFirstMethodHere
+00001022                            57  * Description: call this method from your code above; see the examples above on
+00001022                            58  *   how to call methods and use them profusely as you build your final project
+00001022                            59  *
+00001022                            60  * Preconditions:  TBA
+00001022                            61  * Postconditions: TBA
+00001022                            62  *********************************************************************************
+00001022                            63  method1:
+00001022  4E71                      64          NOP
+00001024  4E75                      65          RTS
+00001026                            66  *********************************************************************************
+00001026                            67  * Method Name: yourDisassemblerSecondMethodHere
+00001026                            68  * Description:    TBA
+00001026                            69  *
+00001026                            70  * Preconditions:  TBA
+00001026                            71  * Postconditions: TBA
+00001026                            72  *********************************************************************************
+00001026                            73  method2:
+00001026  4E71                      74          NOP
+00001028  4E75                      75          RTS
+0000102A                            76  
+0000102A                            77  *********************************************************************************
+0000102A                            78  ********************************* I/O Section ***********************************
+0000102A                            79  *********************************************************************************
+0000102A                            80  
+0000102A                            81  *Code goes here
+0000102A                            82  
+0000102A                            83  
+0000102A                            84  *********************************************************************************
+0000102A                            85  ******************************* OP Code Section *********************************
+0000102A                            86  *********************************************************************************
+0000102A                            87  
+0000102A                            88  
+0000102A                            89  *********************************************************************************
+0000102A                            90  * Method Name: identifyOPCODE
+0000102A                            91  * Description:    Attempts to decode an opcode by first examining the first nibble,
+0000102A                            92  *                 then branching off to identify opcode
+0000102A                            93  *
+0000102A                            94  * Preconditions:  A6 should contain the pointer to the next word after opcode.
+0000102A                            95  *                 A5 Should contain the pointer to the next space in good buffer.
+0000102A                            96  *                 D6 should contain the good/bad flag.
+0000102A                            97  *
+0000102A                            98  * Postconditions: A5 will contain the pointer to the next space in the good buffer
+0000102A                            99  *                 D6 will contain the good/bad flag
+0000102A                           100  *                 D7 will contain mode and register bits 
+0000102A                           101  *
+0000102A                           102  * MODIFIES:       D3
+0000102A                           103  *********************************************************************************
+0000102A                           104  identifyOPCODE:
+0000102A                           105  
+0000102A                           106  *****IDENTIFY FIRST NIBBLE*****
+0000102A  3616                     107          MOVE.W (A6),D3 *move opcode to D3
+0000102C                           108  
+0000102C  B679 00001588            109          CMP.W RTS,D3 *check if the OP is rts
+00001032  6700 017E                110          BEQ dRTS
+00001036                           111  
+00001036  B679 0000158C            112          CMP.W NOP,D3 *check if the OP is NOP
+0000103C  6700 018A                113          BEQ dNOP
+00001040                           114  
+00001040  C679 000015CE            115          AND.W isolateNibbleMask,D3 *isolate nibble by clearing the rest of the bits
+00001046                           116  
+00001046                           117          * check the first nibble and jump to the proper jumptable for that prefix
+00001046  B679 00001576            118          CMP.W chk0000,D3 *0000
+0000104C  6700 0058                119          BEQ ident0000
+00001050  B679 00001578            120          CMP.W chk0100,D3 *0100
+00001056  6700 008A                121          BEQ ident0100
+0000105A  B679 0000157A            122          CMP.W chk0101,D3 *0101
+00001060  6700 00D0                123          BEQ ident0101
+00001064  B679 0000157C            124          CMP.W chk0110,D3 *0110
+0000106A  6700 00E0                125          BEQ ident0110
+0000106E  B679 0000157E            126          CMP.W chk1000,D3 *1000
+00001074  6700 00F0                127          BEQ ident1000
+00001078  B679 00001580            128          CMP.W chk1001,D3 *1001
+0000107E  6700 0100                129          BEQ ident1001
+00001082  B679 00001582            130          CMP.W chk1011,D3 *1011
+00001088  6700 00FE                131          BEQ ident1011
+0000108C  B679 00001584            132          CMP.W chk1100,D3 *1100
+00001092  6700 00FC                133          BEQ ident1100
+00001096  B679 00001586            134          CMP.W chk1101,D3 *1101
+0000109C  6700 010C                135          BEQ ident1101
+000010A0  4EF9 000013A6            136          JMP data         *data
+000010A6                           137  
+000010A6                           138  
+000010A6                           139  *****IDENTIFY OPCODE FROM NIBBLE*****
+000010A6                           140  
+000010A6                           141  *TODO add case for MOVEA/MOVE
+000010A6                           142  
+000010A6                           143  ident0000 * is this ORI/CMPI/BCLR
+000010A6  3616                     144          MOVE (A6),D3 *move the full opcode back into D3
+000010A8                           145          
+000010A8                           146          * ORI?
+000010A8  C679 0000158E            147          AND.W ORIISO,D3 *clear irrelevant bits
+000010AE  B67C 1590                148          CMP.W #ORICHK,D3 *compare to identity
+000010B2  6700 012A                149          BEQ dORI *match?
+000010B6  3616                     150          MOVE (A6),D3 *move the full opcode back into D3
+000010B8                           151          
+000010B8                           152          * CMPI?
+000010B8  C679 00001592            153          AND.W CMPIISO,D3 *clear irrelevant bits
+000010BE  B679 00001594            154          CMP.W CMPICHK,D3 *compare to identity
+000010C4  6700 0134                155          BEQ dCMPI *match?
+000010C8  3616                     156          MOVE (A6),D3 *move the full opcode back into D3     
+000010CA                           157          
+000010CA                           158          * BCLR?
+000010CA  C679 00001596            159          AND.W BCLRISO,D3 *clear irrelevant bits
+000010D0  B679 00001598            160          CMP.W BCLRCHK,D3 *compare to identity
+000010D6  6700 0142                161          BEQ dBCLR *match?
+000010DA  3616                     162          MOVE (A6),D3 *move the full opcode back into D3 
+000010DC                           163  
+000010DC  4EF9 000013A6            164          JMP data *could not identify
+000010E2                           165  
+000010E2                           166  ident0100 * is this NEG/RTS/JSR/MOVEM/LEA
+000010E2  3616                     167          MOVE (A6),D3 *move the full opcode back into D3
+000010E4                           168          
+000010E4                           169          *RTS has already been checked
+000010E4                           170          
+000010E4                           171          * NEG?
+000010E4  C679 000015AA            172          AND.W NEGISO,D3 *clear irrelevant bits
+000010EA  B679 000015AC            173          CMP.W NEGCHK,D3 *compare to identity
+000010F0  6700 0142                174          BEQ dNEG *match?
+000010F4  3616                     175          MOVE (A6),D3 *move the full opcode back into D3 
+000010F6                           176          
+000010F6                           177          * JSR?
+000010F6  C679 000015AE            178          AND.W JSRISO,D3 *clear irrelevant bits
+000010FC  B679 000015B0            179          CMP.W JSRCHK,D3 *compare to identity
+00001102  6700 014C                180          BEQ dJSR *match?
+00001106  3616                     181          MOVE (A6),D3 *move the full opcode back into D3
+00001108                           182  
+00001108                           183          * MOVEM?
+00001108  C679 000015B2            184          AND.W MOVEMISO,D3 *clear irrelevant bits
+0000110E  B679 000015B4            185          CMP.W MOVEMCHK,D3 *compare to identity
+00001114  6700 0150                186          BEQ dMOVEM *match?
+00001118  3616                     187          MOVE (A6),D3 *move the full opcode back into D3             
+0000111A                           188          
+0000111A                           189          * LEA?
+0000111A  C679 000015B6            190          AND.W LEAISO,D3 *clear irrelevant bits
+00001120  B679 000015B8            191          CMP.W LEACHK,D3 *compare to identity
+00001126  6700 015C                192          BEQ dLEA *match?
+0000112A  3616                     193          MOVE (A6),D3 *move the full opcode back into D3         
+0000112C                           194  
+0000112C  4EF9 000013A6            195          JMP data *could not identify
+00001132                           196  
+00001132                           197  ident0101 * is this SUBQ
+00001132  3616                     198          MOVE (A6),D3 *move the full opcode back into D3
+00001134                           199          
+00001134                           200          * SUBQ?
+00001134  C679 0000159A            201          AND.W SUBQISO,D3 *clear irrelevant bits
+0000113A  B679 0000159C            202          CMP.W SUBQCHK,D3 *compare to identity
+00001140  6700 0158                203          BEQ dSUBQ *match?
+00001144  3616                     204          MOVE (A6),D3 *move the full opcode back into D3
+00001146                           205  
+00001146  4EF9 000013A6            206          JMP data *could not identify
+0000114C                           207  
+0000114C                           208  ident0110 * is this BRA
+0000114C  3616                     209          MOVE (A6),D3 *move the full opcode back into D3
+0000114E                           210  
+0000114E                           211          * BRA?
+0000114E  C679 0000159E            212          AND.W BRAISO,D3 *clear irrelevant bits
+00001154  B679 000015A0            213          CMP.W BRACHK,D3 *compare to identity
+0000115A  6700 015E                214          BEQ dBRA *match?
+0000115E  3616                     215          MOVE (A6),D3 *move the full opcode back into D3
+00001160                           216  
+00001160  4EF9 000013A6            217          JMP data *could not identify
+00001166                           218  
+00001166                           219  ident1000 * is this DIVS/OR
+00001166  3616                     220          MOVE (A6),D3 *move the full opcode back into D3
+00001168                           221          
+00001168                           222          * DIVS?
+00001168  C679 000015A6            223          AND.W DIVSISO,D3 *clear irrelevant bits
+0000116E  B679 000015A8            224          CMP.W DIVSCHK,D3 *compare to identity
+00001174  6700 015A                225          BEQ dDIVS *match?
+00001178  3616                     226          MOVE (A6),D3 *move the full opcode back into D3
+0000117A                           227          
+0000117A                           228          *TODO: figure out how to do OR
+0000117A                           229  
+0000117A  4EF9 000013A6            230          JMP data *could not identify
+00001180                           231  
+00001180                           232  ident1001 * is this SUB
+00001180  3616                     233          MOVE (A6),D3 *move the full opcode back into D3
+00001182                           234          
+00001182                           235          *TODO: figure out how to do SUB
+00001182                           236  
+00001182  4EF9 000013A6            237          JMP data *could not identify
+00001188                           238  
+00001188                           239  ident1011 * is this EOR/CMP
+00001188  3616                     240          MOVE (A6),D3 *move the full opcode back into D3
+0000118A                           241  
+0000118A  4EF9 000013A6            242          JMP data
+00001190                           243  
+00001190                           244  ident1100 * is this MULS
+00001190  3616                     245          MOVE (A6),D3 *move the full opcode back into D3
+00001192                           246          
+00001192                           247          * MULS?
+00001192  C679 000015A2            248          AND.W MULSISO,D3 *clear irrelevant bits
+00001198  B679 000015A4            249          CMP.W MULSCHK,D3 *compare to identity
+0000119E  6700 01B6                250          BEQ dMULS *match?
+000011A2  3616                     251          MOVE (A6),D3 *move the full opcode back into D3
+000011A4                           252  
+000011A4  4EF9 000013A6            253          JMP data *could not identify
+000011AA                           254  
+000011AA                           255  ident1101 * is this ADD/ADDA
+000011AA  3616                     256          MOVE (A6),D3 *move the full opcode back into D3
+000011AC                           257  
+000011AC  4EF9 000013A6            258          JMP data
+000011B2                           259          
+000011B2                           260  *****OPCODE IDENTIFIED*****
+000011B2                           261  
+000011B2                           262  dRTS *this is RTS
+000011B2                           263          
+000011B2                           264          *add to buffer
+000011B2  1AFC 0020                265          MOVE.B #' ',(A5)+
+000011B6  1AFC 0052                266          MOVE.B #'R',(A5)+
+000011BA  1AFC 0054                267          MOVE.B #'T',(A5)+
+000011BE  1AFC 0053                268          MOVE.B #'S',(A5)+
+000011C2                           269  
+000011C2  4EF9 000013B0            270          JMP endIdent
+000011C8                           271          
+000011C8                           272  dNOP *this is NOP
+000011C8                           273          
+000011C8                           274          *add to buffer
+000011C8  1AFC 0020                275          MOVE.B #' ',(A5)+
+000011CC  1AFC 004E                276          MOVE.B #'N',(A5)+
+000011D0  1AFC 004F                277          MOVE.B #'O',(A5)+
+000011D4  1AFC 0050                278          MOVE.B #'P',(A5)+
+000011D8                           279  
+000011D8  4EF9 000013B0            280          JMP endIdent
+000011DE                           281          
+000011DE                           282  dORI *this is ORI
+000011DE                           283          
+000011DE                           284          *add to buffer
+000011DE  1AFC 0020                285          MOVE.B #' ',(A5)+
+000011E2  1AFC 004F                286          MOVE.B #'O',(A5)+
+000011E6  1AFC 0052                287          MOVE.B #'R',(A5)+
+000011EA  1AFC 0049                288          MOVE.B #'I',(A5)+
+000011EE                           289          
+000011EE  4EB9 000013B2            290          JSR identifyOPSIZE *identify size of operation and add to buffer
+000011F4                           291  
+000011F4  4EF9 000013B0            292          JMP endIdent
+000011FA                           293          
+000011FA                           294  dCMPI *this is CMPI
+000011FA                           295  
+000011FA                           296          *add to buffer
+000011FA  1AFC 0020                297          MOVE.B #' ',(A5)+
+000011FE  1AFC 0043                298          MOVE.B #'C',(A5)+
+00001202  1AFC 004D                299          MOVE.B #'M',(A5)+
+00001206  1AFC 0050                300          MOVE.B #'P',(A5)+
+0000120A  1AFC 0049                301          MOVE.B #'I',(A5)+
+0000120E                           302          
+0000120E  4EB9 000013B2            303          JSR identifyOPSIZE *identify size of operation and add to buffer
+00001214                           304  
+00001214  4EF9 000013B0            305          JMP endIdent
+0000121A                           306          
+0000121A                           307  dBCLR *this is BCLR
+0000121A                           308          
+0000121A                           309          *add to buffer
+0000121A  1AFC 0020                310          MOVE.B #' ',(A5)+
+0000121E  1AFC 0042                311          MOVE.B #'B',(A5)+
+00001222  1AFC 0043                312          MOVE.B #'C',(A5)+
+00001226  1AFC 004C                313          MOVE.B #'L',(A5)+
+0000122A  1AFC 0052                314          MOVE.B #'R',(A5)+
+0000122E                           315  
+0000122E  4EF9 000013B0            316          JMP endIdent
+00001234                           317          
+00001234                           318  dNEG *this is NEG
+00001234                           319  
+00001234                           320          *add to buffer
+00001234  1AFC 0020                321          MOVE.B #' ',(A5)+
+00001238  1AFC 004E                322          MOVE.B #'N',(A5)+
+0000123C  1AFC 0045                323          MOVE.B #'E',(A5)+
+00001240  1AFC 0047                324          MOVE.B #'G',(A5)+
+00001244                           325          
+00001244  4EB9 000013B2            326          JSR identifyOPSIZE *identify size of operation and add to buffer
+0000124A                           327          
+0000124A  4EF9 000013B0            328          JMP endIdent
+00001250                           329          
+00001250                           330  dJSR *this is JSR
+00001250                           331  
+00001250                           332          *add to buffer
+00001250  1AFC 0020                333          MOVE.B #' ',(A5)+
+00001254  1AFC 004A                334          MOVE.B #'J',(A5)+
+00001258  1AFC 0053                335          MOVE.B #'S',(A5)+
+0000125C  1AFC 0052                336          MOVE.B #'R',(A5)+       
+00001260                           337  
+00001260  4EF9 000013B0            338          JMP endIdent
+00001266                           339          
+00001266                           340  dMOVEM *this is MOVEM
+00001266                           341          
+00001266                           342          *add to buffer
+00001266  1AFC 0020                343          MOVE.B #' ',(A5)+
+0000126A  1AFC 004D                344          MOVE.B #'M',(A5)+
+0000126E  1AFC 004F                345          MOVE.B #'O',(A5)+
+00001272  1AFC 0056                346          MOVE.B #'V',(A5)+
+00001276  1AFC 0045                347          MOVE.B #'E',(A5)+
+0000127A  1AFC 004D                348          MOVE.B #'M',(A5)+       
+0000127E                           349  
+0000127E  4EF9 000013B0            350          JMP endIdent
+00001284                           351          
+00001284                           352  dLEA *this is LEA
+00001284                           353  
+00001284                           354          *add to buffer
+00001284  1AFC 0020                355          MOVE.B #' ',(A5)+
+00001288  1AFC 004C                356          MOVE.B #'L',(A5)+
+0000128C  1AFC 0045                357          MOVE.B #'E',(A5)+
+00001290  1AFC 0041                358          MOVE.B #'A',(A5)+
+00001294                           359          
+00001294  4EF9 000013B0            360          JMP endIdent
+0000129A                           361          
+0000129A                           362  dSUBQ *this is SUBQ
+0000129A                           363          
+0000129A                           364          *add to buffer
+0000129A  1AFC 0020                365          MOVE.B #' ',(A5)+
+0000129E  1AFC 0053                366          MOVE.B #'S',(A5)+
+000012A2  1AFC 0055                367          MOVE.B #'U',(A5)+
+000012A6  1AFC 0042                368          MOVE.B #'B',(A5)+
+000012AA  1AFC 0051                369          MOVE.B #'Q',(A5)+
+000012AE                           370          
+000012AE  4EB9 000013B2            371          JSR identifyOPSIZE *identify size of operation and add to buffer        
+000012B4                           372  
+000012B4  4EF9 000013B0            373          JMP endIdent
+000012BA                           374          
+000012BA                           375  dBRA *this is BRA
+000012BA                           376          
+000012BA                           377          *add to buffer
+000012BA  1AFC 0020                378          MOVE.B #' ',(A5)+
+000012BE  1AFC 0042                379          MOVE.B #'B',(A5)+
+000012C2  1AFC 0052                380          MOVE.B #'R',(A5)+
+000012C6  1AFC 0041                381          MOVE.B #'A',(A5)+
+000012CA                           382  
+000012CA  4EF9 000013B0            383          JMP endIdent
+000012D0                           384          
+000012D0                           385  dDIVS *this is DIVS
+000012D0                           386          
+000012D0                           387          *add to buffer
+000012D0  1AFC 0020                388          MOVE.B #' ',(A5)+
+000012D4  1AFC 0044                389          MOVE.B #'D',(A5)+
+000012D8  1AFC 0049                390          MOVE.B #'I',(A5)+
+000012DC  1AFC 0056                391          MOVE.B #'V',(A5)+
+000012E0  1AFC 0053                392          MOVE.B #'S',(A5)+
+000012E4                           393  
+000012E4  4EF9 000013B0            394          JMP endIdent
+000012EA                           395          
+000012EA                           396  dOR *this is OR
+000012EA                           397          
+000012EA                           398          *add to buffer
+000012EA  1AFC 0020                399          MOVE.B #' ',(A5)+
+000012EE  1AFC 004F                400          MOVE.B #'O',(A5)+
+000012F2  1AFC 0052                401          MOVE.B #'R',(A5)+
+000012F6                           402          
+000012F6  4EB9 000013B2            403          JSR identifyOPSIZE *identify size of operation and add to buffer
+000012FC                           404  
+000012FC  4EF9 000013B0            405          JMP endIdent
+00001302                           406          
+00001302                           407  dSUB *this is SUB
+00001302                           408  
+00001302                           409          *add to buffer
+00001302  1AFC 0020                410          MOVE.B #' ',(A5)+
+00001306  1AFC 0053                411          MOVE.B #'S',(A5)+
+0000130A  1AFC 0055                412          MOVE.B #'U',(A5)+
+0000130E  1AFC 0042                413          MOVE.B #'B',(A5)+
+00001312                           414          
+00001312  4EB9 000013B2            415          JSR identifyOPSIZE *identify size of operation and add to buffer
+00001318                           416  
+00001318  4EF9 000013B0            417          JMP endIdent
+0000131E                           418          
+0000131E                           419  dEOR *this is EOR
+0000131E                           420          
+0000131E                           421          *add to buffer
+0000131E  1AFC 0020                422          MOVE.B #' ',(A5)+
+00001322  1AFC 0045                423          MOVE.B #'E',(A5)+
+00001326  1AFC 004F                424          MOVE.B #'O',(A5)+
+0000132A  1AFC 0052                425          MOVE.B #'R',(A5)+
+0000132E                           426          
+0000132E  4EB9 000013B2            427          JSR identifyOPSIZE *identify size of operation and add to buffer
+00001334                           428  
+00001334  4EF9 000013B0            429          JMP endIdent
+0000133A                           430          
+0000133A                           431  dCMP *this is CMP
+0000133A                           432          
+0000133A                           433          *add to buffer
+0000133A  1AFC 0020                434          MOVE.B #' ',(A5)+
+0000133E  1AFC 0043                435          MOVE.B #'C',(A5)+
+00001342  1AFC 004D                436          MOVE.B #'M',(A5)+
+00001346  1AFC 0050                437          MOVE.B #'P',(A5)+
+0000134A                           438          
+0000134A  4EB9 000013B2            439          JSR identifyOPSIZE *identify size of operation and add to buffer
+00001350                           440  
+00001350  4EF9 000013B0            441          JMP endIdent
+00001356                           442          
+00001356                           443  dMULS *this is MULS
+00001356                           444          
+00001356                           445          *add to buffer
+00001356  1AFC 0020                446          MOVE.B #' ',(A5)+
+0000135A  1AFC 004D                447          MOVE.B #'M',(A5)+
+0000135E  1AFC 0055                448          MOVE.B #'U',(A5)+
+00001362  1AFC 004C                449          MOVE.B #'L',(A5)+
+00001366  1AFC 0053                450          MOVE.B #'S',(A5)+
+0000136A                           451  
+0000136A  4EF9 000013B0            452          JMP endIdent
+00001370                           453          
+00001370                           454  dADD *this is ADD
+00001370                           455          
+00001370                           456          *add to buffer
+00001370  1AFC 0020                457          MOVE.B #' ',(A5)+
+00001374  1AFC 0041                458          MOVE.B #'A',(A5)+
+00001378  1AFC 0044                459          MOVE.B #'D',(A5)+
+0000137C  1AFC 0044                460          MOVE.B #'D',(A5)+
+00001380                           461          
+00001380  4EB9 000013B2            462          JSR identifyOPSIZE *identify size of operation and add to buffer
+00001386                           463  
+00001386  4EF9 000013B0            464          JMP endIdent
+0000138C                           465          
+0000138C                           466  dADDA *this is ADDA
+0000138C                           467          
+0000138C                           468          *add to buffer
+0000138C  1AFC 0020                469          MOVE.B #' ',(A5)+
+00001390  1AFC 0041                470          MOVE.B #'A',(A5)+
+00001394  1AFC 0044                471          MOVE.B #'D',(A5)+
+00001398  1AFC 0044                472          MOVE.B #'D',(A5)+
+0000139C  1AFC 0041                473          MOVE.B #'A',(A5)+
+000013A0                           474  
+000013A0  4EF9 000013B0            475          JMP endIdent
+000013A6                           476  
+000013A6                           477  data
+000013A6                           478          *print DATA
+000013A6  1C3C 0001                479          MOVE.B #1,D6 *set bad flag
+000013AA                           480  
+000013AA  4EF9 000013B0            481          JMP endIdent
+000013B0                           482  
+000013B0                           483  endIdent
+000013B0  4E75                     484          RTS
+000013B2                           485          
+000013B2                           486  *********************************************************************************
+000013B2                           487  * Method Name: identifyOPSIZE
+000013B2                           488  * Description:    Determines the size of the operation decoded and appends it to the printstream
+000013B2                           489  *
+000013B2                           490  * Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+000013B2                           491  *                 A6 should contain the pointer to the opcode
+000013B2                           492  *
+000013B2                           493  * Postconditions: A5 will contain the pointer to the next space in the good buffer
+000013B2                           494  *                 The size of the operation will be appended to the printbuffer ('.B','.W','L')
+000013B2                           495  *                 D6 bad flag will be set if size cannot be determined
+000013B2                           496  *
+000013B2                           497  * MODIFIES:       D3
+000013B2                           498  *********************************************************************************
+000013B2                           499  identifyOPSIZE:
+000013B2                           500  *****IDENTIFY SIZE*****
+000013B2                           501  
+000013B2                           502  decodesize
+000013B2                           503  
+000013B2                           504          * byte?
+000013B2  3616                     505          MOVE.W (A6),D3 *move opcode into D3
+000013B4  C679 000015BA            506          AND.W SIZEISO, D3 *isolate size bits
+000013BA  B679 000015BC            507          CMP.W BSIZECHECK,D3 *is this byte?
+000013C0  6700 002C                508          BEQ dBYTE
+000013C4                           509          
+000013C4                           510          * word?
+000013C4  3616                     511          MOVE.W (A6),D3 *move opcode into D3
+000013C6  C679 000015BA            512          AND.W SIZEISO, D3 *isolate size bits
+000013CC  B679 000015BE            513          CMP.W WSIZECHECK,D3 *is this word?
+000013D2  6700 0028                514          BEQ dWORD
+000013D6                           515          
+000013D6                           516          * long?
+000013D6  3616                     517          MOVE.W (A6),D3 *move opcode into D3
+000013D8  C679 000015BA            518          AND.W SIZEISO, D3 *isolate size bits
+000013DE  B679 000015C0            519          CMP.W LSIZECHECK,D3 *is this long?
+000013E4  6700 0024                520          BEQ dLONG
+000013E8                           521          
+000013E8                           522          * size could not be determined
+000013E8  4EF9 00001418            523          JMP sizeidenterror
+000013EE                           524          
+000013EE                           525  *****SIZE IDENTIFIED*****
+000013EE                           526          
+000013EE                           527  dBYTE *this is byte
+000013EE                           528  
+000013EE                           529          *add to buffer
+000013EE  1AFC 002E                530          MOVE.B #'.',(A5)+
+000013F2  1AFC 0042                531          MOVE.B #'B',(A5)+
+000013F6                           532          
+000013F6  4EF9 0000141C            533          JMP endidentsize
+000013FC                           534  
+000013FC                           535  dWORD *this is word
+000013FC                           536          
+000013FC                           537          *add to buffer
+000013FC  1AFC 002E                538          MOVE.B #'.',(A5)+
+00001400  1AFC 0057                539          MOVE.B #'W',(A5)+
+00001404                           540  
+00001404  4EF9 0000141C            541          JMP endidentsize
+0000140A                           542          
+0000140A                           543  dLONG *this is looong
+0000140A                           544          
+0000140A                           545          *add to buffer
+0000140A  1AFC 002E                546          MOVE.B #'.',(A5)+
+0000140E  1AFC 004C                547          MOVE.B #'L',(A5)+
+00001412                           548          
+00001412  4EF9 0000141C            549          JMP endidentsize
+00001418                           550  
+00001418                           551  sizeidenterror
+00001418                           552  
+00001418  1C3C 0001                553          MOVE.B #1,D6
+0000141C                           554  
+0000141C                           555  endidentsize
+0000141C                           556  
+0000141C  4E75                     557          RTS
+0000141E                           558  *********************************************************************************
+0000141E                           559  ********************************* EA Section ************************************
+0000141E                           560  *********************************************************************************
+0000141E                           561  
+0000141E                           562  
+0000141E                           563  *********************************************************************************
+0000141E                           564  * Method Name:    decodeEA
+0000141E                           565  * Description:    * Decodes the 6 bits of the EA field of the instruction. After
+0000141E                           566  *                   Finding and adding the proper text to the buffer, it sets the
+0000141E                           567  *                   Good/bad flag and goes back to the calling function.
+0000141E                           568  *
+0000141E                           569  * Preconditions:  * D6 Should contain the 6 bits from EA field of opcode, within
+0000141E                           570  *                   The first byte.
+0000141E                           571  *                 * A6 should contain the pointer to the next word after opcode.
+0000141E                           572  *                 * A5 Should contain the pointer to the next space in good buffer.
+0000141E                           573  *                 * D7 should contain the good/bad flag.
+0000141E                           574  *
+0000141E                           575  * Postconditions: * Sets the memory pointer to the next word after EA at A6.
+0000141E                           576  *                 * Sets the pointer to next available space in good buffer at A5.
+0000141E                           577  *                 * Sets the good/bad flag at D6.
+0000141E                           578  *********************************************************************************
+0000141E                           579  decodeEA:
+0000141E  1A06                     580          MOVE.B D6,D5                           *Bit mask the 3 bits in the middle
+00001420  CA3C 0038                581          AND.B #%00111000, D5
+00001424                           582  
+00001424  BA39 000015C4            583          CMP.B modeAn, D5                       *Check every supported mode based
+0000142A  6700 003A                584          BEQ decodeAn                           *on the 3 selected bits.
+0000142E                           585  
+0000142E  BA39 000015C5            586          CMP.B modeDn, D5
+00001434  6700 0036                587          BEQ decodeDn
+00001438                           588  
+00001438  BA39 000015C6            589          CMP.B  modeAd, D5                      *Branch to proper labels.
+0000143E  6700 0032                590          BEQ decodeAd
+00001442                           591  
+00001442  BA39 000015C7            592          CMP.B modeAd_Increment, D5
+00001448  6700 002E                593          BEQ decodeAd_Increment
+0000144C                           594  
+0000144C  BA39 000015C8            595          CMP.B modeAd_Decrement, D5
+00001452  6700 002A                596          BEQ decodeAd_Decrement
+00001456                           597  
+00001456  BA39 000015C9            598          CMP.B mode111, D5                     *For the last 3 modes more info is needed.
+0000145C  6700 0026                599          BEQ decode111                         *so if bits were 111, go to decode111 to decide.
+00001460                           600  
+00001460  4EF9 000014C0            601          JMP invalidEA                         *If none of the modes, it would be invalid.
+00001466                           602  
+00001466                           603  * For decoding An
+00001466                           604  decodeAn
+00001466                           605          *TODO: Write proper data to buffer, and set flag.
+00001466  4EF9 000014C6            606          JMP endEaDecode
+0000146C                           607  
+0000146C                           608  * For decoding Dn
+0000146C                           609  decodeDn
+0000146C                           610          *TODO: Write proper data to buffer, and set flag.
+0000146C  4EF9 000014C6            611          JMP endEaDecode
+00001472                           612  
+00001472                           613  * For decoding (Ad)
+00001472                           614  decodeAd
+00001472                           615          *TODO: Write proper data to buffer, and set flag.
+00001472  4EF9 000014C6            616          JMP endEaDecode
+00001478                           617  
+00001478                           618  * For decoding (Ad)+
+00001478                           619  decodeAd_Increment
+00001478                           620          *TODO: Write proper data to buffer, and set flag.
+00001478  4EF9 000014C6            621          JMP endEaDecode
+0000147E                           622  
+0000147E                           623  *For decoding -(Ad)
+0000147E                           624  decodeAd_Decrement
+0000147E                           625          *TODO: Write proper data to buffer, and set flag.
+0000147E  4EF9 000014C6            626          JMP endEaDecode
+00001484                           627  
+00001484                           628  *For finding out which of the ((xxx).w and (xxx).l and immediate.) were referenced.
+00001484                           629  decode111
+00001484  1A06                     630          MOVE.B D6,D5                          *Bitmask to select the last 6 bits.
+00001486  CA3C 003F                631          AND.B #%00111111, D5
+0000148A                           632  
+0000148A  BA39 000015CA            633          CMP.B modeAbs_Word, D5                *Check the remaining modes and
+00001490  6700 001C                634          BEQ decodeAbs_Word                    *Go to their label accordingly.
+00001494                           635  
+00001494  BA39 000015CB            636          CMP.B modeAbs_Long, D5
+0000149A  6700 0018                637          BEQ decodeAbs_Long
+0000149E                           638  
+0000149E  BA39 000015CC            639          CMP.B modeImmediate, D5
+000014A4  6700 0014                640          BEQ decodeImmediate
+000014A8                           641  
+000014A8  4EF9 000014C0            642          JMP invalidEA                         *If none of the modes, given mode is invalid.
+000014AE                           643  
+000014AE                           644  *For decoding (xxx).W
+000014AE                           645  decodeAbs_Word
+000014AE                           646          *TODO: Write proper data to buffer, and set flag.
+000014AE  4EF9 000014C6            647          JMP endEaDecode
+000014B4                           648  
+000014B4                           649  *For decoding (xxx).L
+000014B4                           650  decodeAbs_Long
+000014B4                           651          *TODO: Write proper data to buffer, and set flag.
+000014B4  4EF9 000014C6            652          JMP endEaDecode
+000014BA                           653  
+000014BA                           654  *For decoding immediate.
+000014BA                           655  decodeImmediate
+000014BA                           656          *TODO: Write proper data to buffer, and set flag.
+000014BA  4EF9 000014C6            657          JMP endEaDecode
+000014C0                           658  
+000014C0                           659  *If none of the valid modes were detetected, it comes here.
+000014C0                           660  invalidEA
+000014C0                           661          *TODO: Set the invalid flag.
+000014C0  4EF9 000014C6            662          JMP endEaDecode
+000014C6                           663  
+000014C6                           664  *All the sections come here after the execution of their codes.
+000014C6                           665  endEaDecode
+000014C6  4E75                     666          RTS
+000014C8                           667  
+000014C8                           668  *********************************************************************************
+000014C8                           669  *********************** Trap 13, Variables, Constants ***************************
+000014C8                           670  *********************************************************************************
+000014C8                           671  
+000014C8                           672  
+000014C8                           673  *********************************************************************************
+000014C8                           674  * Method Name: TrapTask13
+000014C8                           675  * Description: Creates a file if none exists, and appends bytes to that file
+000014C8                           676  *   while also echoing the written bytes to the screen.  You shouldn't need to
+000014C8                           677  *   change this code.
+000014C8                           678  *
+000014C8                           679  * Calling Convention: Callee-Saved
+000014C8                           680  *
+000014C8                           681  * Preconditions & Method Input:
+000014C8                           682  *   A1 points to the null-terminated buffer to write (newline will be added for you)
+000014C8                           683  *
+000014C8                           684  * Postconditions & Output:
+000014C8                           685  *   ALL files that were previously open will be CLOSED (FileIDs will be invalid)
+000014C8                           686  *   See 'Output.txt' in directory for the results, also piped to the console
+000014C8                           687  *
+000014C8                           688  *
+000014C8                           689  *  A2 holds a pointer to null terminated string to write (input)
+000014C8                           690  *  A3 points to the null-terminated file name
+000014C8                           691  *  D3 holds the number of bytes already in the file to write
+000014C8                           692  *
+000014C8                           693  *  D5 holds number of bytes to write
+000014C8                           694  ********************************************************************************
+000014C8                           695  toSave REG D0-D5/A2-A3
+000014C8                           696  TrapTask13:
+000014C8                           697      *******************************************************************
+000014C8                           698      * Method initialization, regsiter spilling, parameter saving, etc.
+000014C8                           699      *******************************************************************
+000014C8  48E7 FC30                700      MOVEM.L toSave, -(SP)   ;  Callee-Saved, so save and restore
+000014CC                           701  
+000014CC  2449                     702      MOVEA.L A1, A2 ; save this buffer to write
+000014CE  47F9 0000156A            703      LEA outFilename, A3  ; save this for later, too
+000014D4                           704  
+000014D4  303C 0032                705      move #50,d0
+000014D8  4E4F                     706      trap #15 ; close all files, suggested to begin any IO
+000014DA                           707      *******************************************************************
+000014DA                           708      * End Method Init
+000014DA                           709      *******************************************************************
+000014DA                           710  
+000014DA                           711      ******************************************************************************************
+000014DA                           712      * Calculate the number of bytes to write by searching for the null in the target buffer A0
+000014DA                           713      ******************************************************************************************
+000014DA  4285                     714      CLR.L D5 *D5 is now the number of bytes to write
+000014DC                           715  nullLoop:
+000014DC  1019                     716      MOVE.B (A1)+, D0
+000014DE  0C00 0000                717      CMPI.B #0,D0  * compare to null
+000014E2  6700 0006                718      BEQ findNullLoopDone
+000014E6  5245                     719      ADDI.W #1, D5
+000014E8  60F2                     720      BRA nullLoop
+000014EA                           721  
+000014EA                           722  findNullLoopDone:
+000014EA  224B                     723      MOVEA.L A3, A1 * reset A1 so it points to the file to write to (to open, next)
+000014EC                           724  
+000014EC                           725      ;check if file exists, and open with task 51 if so, otherwise 52
+000014EC                           726      ;(precondition here is A1 points to the null-terminated filename )
+000014EC  103C 0033                727      MOVE.B #51, D0      ;open file (task 51 is existing, 52 is new)
+000014F0  4E4F                     728      trap #15
+000014F2                           729  
+000014F2                           730      if.w D0 <NE> #0 then.s         ; if file error (404, not found)
+000014F8  103C 0034                731          MOVE.B #52, D0             ; open new file (52 is new)
+000014FC  4E4F                     732          trap #15
+000014FE                           733      endi
+000014FE                           734  
+000014FE                           735      *********************************************************************************************************
+000014FE                           736      * Seek to END of FILE by counting the number of bytes, closing, reopening, then seeking.
+000014FE                           737      *    (first, count number of bytes already in the file to obtain seek position)
+000014FE                           738      *********************************************************************************************************
+000014FE  4283                     739      Clr.L D3   ;TODO: reg save, D3 is now our count of bytes read
+00001500  7401                     740      MOVE.L #1, D2 ; read one byte at a time
+00001502  43F9 00001575            741      LEA byteRead, A1
+00001508                           742  
+00001508                           743  countLoop:
+00001508  103C 0035                744      MOVE.B #53, D0 ; try to read one byte (TODO: move out of loop)
+0000150C  4E4F                     745      trap #15
+0000150E                           746  
+0000150E  0C40 0001                747      CMPI.W #1,D0  ;1 == EOF
+00001512  6700 0006                748      BEQ countDone
+00001516  5243                     749      ADDI #1, D3
+00001518  60EE                     750      BRA countLoop
+0000151A                           751  
+0000151A                           752  countDone:
+0000151A                           753      * close this file
+0000151A  303C 0038                754       move #56,d0
+0000151E  4E4F                     755       trap #15
+00001520                           756  
+00001520                           757       * reopen the target file
+00001520  224B                     758       MOVE.L A3,A1
+00001522  303C 0033                759       MOVE #51, D0
+00001526  4E4F                     760       trap #15
+00001528                           761  
+00001528                           762      * seek to right position, then continue with writing
+00001528  2403                     763      MOVE.L D3, D2 ; move the number of bytes found in the file to D2
+0000152A  303C 0037                764      MOVE #55, D0  ; position file task
+0000152E  4E4F                     765      trap #15
+00001530                           766  
+00001530                           767      ******************************************************************************
+00001530                           768      * Actually write the buffer to the file, after caculating the number of bytes
+00001530                           769      *  to write and after seeking to the right location in the file for append
+00001530                           770      ******************************************************************************
+00001530                           771  
+00001530  2405                     772      MOVE.L D5, D2 ; restore this for the actually writing the buffer
+00001532                           773      ; assumes A0 hasnt changed since handed to this method
+00001532  224A                     774      MOVEA.L A2, A1 ; load the address of the buffer we want to write to disk
+00001534                           775      ; assumes file ID is still stored in D1.L
+00001534  103C 0036                776      MOVE.B #54, D0 ; subtask 54 is write to open file (append, or?), assumes D2 holds # of bytes
+00001538  4E4F                     777      trap #15
+0000153A                           778  
+0000153A                           779      ; add a newline to the file output
+0000153A  43F9 0000155E            780      LEA NEWLINE, A1
+00001540  103C 0036                781      MOVE.B #54, D0
+00001544  143C 0002                782      MOVE.B #2,D2  ; kills # of bytes to write from input param
+00001548  4E4F                     783      trap #15
+0000154A                           784  
+0000154A                           785      ; finally, close only this file
+0000154A  103C 0038                786      MOVE.B #56, D0 ; close file task
+0000154E  4E4F                     787      trap #15
+00001550                           788  
+00001550                           789      ; report to screen
+00001550  224A                     790      MOVEA.L A2, A1 ; load the address of the buffer we want to write to disk & screen
+00001552  103C 000D                791      MOVE.B #13, D0
+00001556  4E4F                     792      trap #15
+00001558                           793  
+00001558                           794      ; restore context
+00001558  4CDF 0C3F                795      MOVEM.L (SP)+, toSave
+0000155C                           796  
+0000155C  4E75                     797      RTS
+0000155E                           798  
+0000155E                           799  * Required variables and constants go here for your Disassembler
+0000155E  =0000000D                800  CR                  EQU $0D
+0000155E  =0000000A                801  LF                  EQU $0A
+0000155E= 0D 0A 00                 802  NEWLINE             DC.B CR,LF,0
+00001561= 44 41 54 41 00           803  MSG1                DC.B 'DATA',0
+00001566= 4E 4F 50 00              804  MSG2                DC.B 'NOP',0
+0000156A= 4F 75 74 70 75 74 ...    805  outFilename         DC.B 'Output.txt',0
+00001575                           806  byteRead            DS.B 1
+00001576                           807  
+00001576                           808  
+00001576                           809  
+00001576                           810  * I/O Variables.
+00001576                           811  *Variables go here.
+00001576  =00004000                812  printbuff           EQU $4000
+00001576                           813  
+00001576                           814  * Opcode variables.
+00001576= 0000                     815  chk0000             DC.W %0000000000000000
+00001578= 4000                     816  chk0100             DC.W %0100000000000000
+0000157A= 5000                     817  chk0101             DC.W %0101000000000000
+0000157C= 6000                     818  chk0110             DC.W %0110000000000000
+0000157E= 8000                     819  chk1000             DC.W %1000000000000000
+00001580= 9000                     820  chk1001             DC.W %1001000000000000
+00001582= B000                     821  chk1011             DC.W %1011000000000000
+00001584= C000                     822  chk1100             DC.W %1100000000000000
+00001586= D000                     823  chk1101             DC.W %1101000000000000
+00001588                           824  
+00001588= 4E75                     825  RTS                 DC.W %0100111001110101
+0000158A= 4E80                     826  JSRMASK             DC.W %0100111010000000
+0000158C= 4E71                     827  NOP                 DC.W %0100111001110001
+0000158E                           828  
+0000158E= 0F00                     829  ORIISO              DC.W %0000111100000000
+00001590= 0000                     830  ORICHK              DC.W %0000000000000000
+00001592= 0F00                     831  CMPIISO             DC.W %0000111100000000
+00001594= 0C00                     832  CMPICHK             DC.W %0000110000000000
+00001596= 0FC0                     833  BCLRISO             DC.W %0000111111000000
+00001598= 0880                     834  BCLRCHK             DC.W %0000100010000000
+0000159A                           835  
+0000159A= 0100                     836  SUBQISO             DC.W %0000000100000000
+0000159C= 0100                     837  SUBQCHK             DC.W %0000000100000000
+0000159E                           838  
+0000159E= 0F00                     839  BRAISO              DC.W %0000111100000000
+000015A0= 0000                     840  BRACHK              DC.W %0000000000000000   
+000015A2                           841  
+000015A2= 0180                     842  MULSISO             DC.W %0000000110000000
+000015A4= 01C0                     843  MULSCHK             DC.W %0000000111000000
+000015A6                           844  
+000015A6= 01C0                     845  DIVSISO             DC.W %0000000111000000
+000015A8= 01C0                     846  DIVSCHK             DC.W %0000000111000000
+000015AA                           847  
+000015AA= 0F00                     848  NEGISO              DC.W %0000111100000000
+000015AC= 0400                     849  NEGCHK              DC.W %0000010000000000
+000015AE= 0FC0                     850  JSRISO              DC.W %0000111111000000
+000015B0= 0E80                     851  JSRCHK              DC.W %0000111010000000
+000015B2= 0B80                     852  MOVEMISO            DC.W %0000101110000000
+000015B4= 0880                     853  MOVEMCHK            DC.W %0000100010000000
+000015B6= 01C0                     854  LEAISO              DC.W %0000000111000000
+000015B8= 01C0                     855  LEACHK              DC.W %0000000111000000
+000015BA                           856  
+000015BA= 00C0                     857  SIZEISO             DC.W %0000000011000000
+000015BC= 0000                     858  BSIZECHECK          DC.W %0000000000000000
+000015BE= 0040                     859  WSIZECHECK          DC.W %0000000001000000
+000015C0= 0080                     860  LSIZECHECK          DC.W %0000000010000000
+000015C2                           861  
+000015C2= 4C40                     862  testOPCODE          DC.W %0100110001000000
+000015C4                           863  
+000015C4                           864  
+000015C4                           865  * Ea variables.
+000015C4= 00                       866  modeAn              DC.B %00000000      * An
+000015C5= 08                       867  modeDn              DC.B %00001000      * Dn
+000015C6= 10                       868  modeAd              DC.B %00010000      * (Ad)
+000015C7= 18                       869  modeAd_Increment    DC.B %00011000      * (Ad)+
+000015C8= 20                       870  modeAd_Decrement    DC.B %00100000      * -(Ad)
+000015C9                           871  
+000015C9= 38                       872  mode111             DC.B %00111000      * 3 following modes:
+000015CA= 38                       873  modeAbs_Word        DC.B %00111000      * (xxx).W
+000015CB= 39                       874  modeAbs_Long        DC.B %00111001      * (xxx).L
+000015CC= 3C                       875  modeImmediate       DC.B %00111100      * Immediate
+000015CD                           876  
+000015CD                           877  
+000015CE= F000                     878  isolateNibbleMask   DC.W %1111000000000000
+000015D0                           879  
+000015D0  =00004000                880  TESTSTARTADDRESS    EQU $00004000
+000015D0  =00005000                881  TESTENDADDRESS      EQU $00005000
+000015D0                           882  
+000015D0                           883     END    START        ; last line of source
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BCLRCHK             1598
+BCLRISO             1596
+BRACHK              15A0
+BRAISO              159E
+BSIZECHECK          15BC
+BYTEREAD            1575
+CHK0000             1576
+CHK0100             1578
+CHK0101             157A
+CHK0110             157C
+CHK1000             157E
+CHK1001             1580
+CHK1011             1582
+CHK1100             1584
+CHK1101             1586
+CMPICHK             1594
+CMPIISO             1592
+COUNTDONE           151A
+COUNTLOOP           1508
+CR                  D
+DADD                1370
+DADDA               138C
+DATA                13A6
+DBCLR               121A
+DBRA                12BA
+DBYTE               13EE
+DCMP                133A
+DCMPI               11FA
+DDIVS               12D0
+DECODE111           1484
+DECODEABS_LONG      14B4
+DECODEABS_WORD      14AE
+DECODEAD            1472
+DECODEAD_DECREMENT  147E
+DECODEAD_INCREMENT  1478
+DECODEAN            1466
+DECODEDN            146C
+DECODEEA            141E
+DECODEIMMEDIATE     14BA
+DECODESIZE          13B2
+DEOR                131E
+DIVSCHK             15A8
+DIVSISO             15A6
+DJSR                1250
+DLEA                1284
+DLONG               140A
+DMOVEM              1266
+DMULS               1356
+DNEG                1234
+DNOP                11C8
+DOR                 12EA
+DORI                11DE
+DRTS                11B2
+DSUB                1302
+DSUBQ               129A
+DWORD               13FC
+ENDEADECODE         14C6
+ENDIDENT            13B0
+ENDIDENTSIZE        141C
+FINDNULLLOOPDONE    14EA
+IDENT0000           10A6
+IDENT0100           10E2
+IDENT0101           1132
+IDENT0110           114C
+IDENT1000           1166
+IDENT1001           1180
+IDENT1011           1188
+IDENT1100           1190
+IDENT1101           11AA
+IDENTIFYOPCODE      102A
+IDENTIFYOPSIZE      13B2
+INVALIDEA           14C0
+ISOLATENIBBLEMASK   15CE
+JSRCHK              15B0
+JSRISO              15AE
+JSRMASK             158A
+LEACHK              15B8
+LEAISO              15B6
+LF                  A
+LSIZECHECK          15C0
+METHOD1             1022
+METHOD2             1026
+MODE111             15C9
+MODEABS_LONG        15CB
+MODEABS_WORD        15CA
+MODEAD              15C6
+MODEAD_DECREMENT    15C8
+MODEAD_INCREMENT    15C7
+MODEAN              15C4
+MODEDN              15C5
+MODEIMMEDIATE       15CC
+MOVEMCHK            15B4
+MOVEMISO            15B2
+MSG1                1561
+MSG2                1566
+MULSCHK             15A4
+MULSISO             15A2
+NEGCHK              15AC
+NEGISO              15AA
+NEWLINE             155E
+NOP                 158C
+NULLLOOP            14DC
+ORICHK              1590
+ORIISO              158E
+OUTFILENAME         156A
+PRINTBUFF           4000
+RTS                 1588
+SIZEIDENTERROR      1418
+SIZEISO             15BA
+START               1000
+SUBQCHK             159C
+SUBQISO             159A
+TESTENDADDRESS      5000
+TESTOPCODE          15C2
+TESTSTARTADDRESS    4000
+TOSAVE              C3F
+TRAPTASK13          14C8
+WSIZECHECK          15BE
+_00000000           14FE
