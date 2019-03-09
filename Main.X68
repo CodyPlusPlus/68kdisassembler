@@ -153,13 +153,15 @@ identifyOPCODE:
         BEQ identMOVE_A
         CMP.W chk0010,D3 *MOVE_A.L
         BEQ identMOVE_A
-        JMP data         *data
+        CMP.W chk1110,D3 *SHIFT/ROTATE OP
+        BEQ identREGMEM
+        JMP ddata         *data
 
 
 *****IDENTIFY OPCODE FROM NIBBLE*****
 
 ident0000 * is this ORI/CMPI/BCLR
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* ORI?
 		AND.W ORIISO,D3 *clear irrelevant bits
@@ -171,18 +173,18 @@ ident0000 * is this ORI/CMPI/BCLR
 		AND.W CMPIISO,D3 *clear irrelevant bits
 		CMP.W CMPICHK,D3 *compare to identity
 		BEQ dCMPI *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* BCLR?
 		AND.W BCLRISO,D3 *clear irrelevant bits
 		CMP.W BCLRCHK,D3 *compare to identity
 		BEQ dBCLR *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
-		JMP data *could not identify
+		JMP ddata *could not identify
 
 ident0100 * is this NEG/RTS/JSR/MOVEM/LEA
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		*RTS has already been checked
 
@@ -190,112 +192,112 @@ ident0100 * is this NEG/RTS/JSR/MOVEM/LEA
 		AND.W NEGISO,D3 *clear irrelevant bits
 		CMP.W NEGCHK,D3 *compare to identity
 		BEQ dNEG *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* JSR?
 		AND.W JSRISO,D3 *clear irrelevant bits
 		CMP.W JSRCHK,D3 *compare to identity
 		BEQ dJSR *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* MOVEM?
 		AND.W MOVEMISO,D3 *clear irrelevant bits
 		CMP.W MOVEMCHK,D3 *compare to identity
 		BEQ dMOVEM *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* LEA?
 		AND.W LEAISO,D3 *clear irrelevant bits
 		CMP.W LEACHK,D3 *compare to identity
 		BEQ dLEA *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
-		JMP data *could not identify
+		JMP ddata *could not identify
 
 ident0101 * is this SUBQ
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* SUBQ?
 		AND.W SUBQISO,D3 *clear irrelevant bits
 		CMP.W SUBQCHK,D3 *compare to identity
 		BEQ dSUBQ *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
-		JMP data *could not identify
+		JMP ddata *could not identify
 
-ident0110 * is this BRA
-		MOVE (A6),D3 *move the full opcode back into D3
+ident0110 * is this BRA/BCS/BGE/BLT/BVC
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* BRA?
-		AND.W BRAISO,D3 *clear irrelevant bits
+		AND.W BCCISO,D3 *clear irrelevant bits
 		CMP.W BRACHK,D3 *compare to identity
 		BEQ dBRA *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
-		JMP data *could not identify
+		JMP ddata *could not identify
 
 ident1000 * is this DIVS/OR
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
         * DIVS?
 		AND.W DIVSISO,D3 *clear irrelevant bits
 		CMP.W DIVSCHK,D3 *compare to identity
 		BEQ dDIVS *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* assume OR
 		JMP dOR
 
-		JMP data *could not identify
+		JMP ddata *could not identify
 
 ident1001 * is this SUB
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* assume SUB
 		JMP dSUB
 
-		JMP data *could not identify
+		JMP ddata *could not identify
 
 ident1011 * is this EOR/CMP
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 		
 		* EOR?
 		AND.W EORISO,D3 *clear irrelevant bits
 		CMP.W EORCHK,D3 *compare to identity
 		BEQ dEOR *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 		
 		* assume CMP
 		JMP dCMP
 
-		JMP data
+		JMP ddata
 
 ident1100 * is this MULS
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		* MULS?
 		AND.W MULSISO,D3 *clear irrelevant bits
 		CMP.W MULSCHK,D3 *compare to identity
 		BEQ dMULS *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 
-		JMP data *could not identify
+		JMP ddata *could not identify
 
 ident1101 * is this ADD/ADDA
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 		
 		AND.W ADDAISO,D3 *clear irrelevant bits
 		CMP.W ADDACHK,D3 *compare to identity
 		BEQ dADDA *match?
-		MOVE (A6),D3 *move the full opcode back into D3
+		MOVE.W (A6),D3 *move the full opcode back into D3
 		
 		* assume ADD
 		JMP dADD
 
-		JMP data
+		JMP ddata
 		
 identMOVE_A *is this MOVE/MOVEA
-		MOVE (A6),D3
+		MOVE.W (A6),D3
 		
 		* MOVEA?
 		AND.W MOVEAISO,D3 *clear irrelevant bits
@@ -304,21 +306,128 @@ identMOVE_A *is this MOVE/MOVEA
 
 		* ASSUME MOVE	
 		JMP dMOVE
+		
+identREGMEM *is this a register or memory shift/rotate
+		MOVE.W (A6),D3
+		
+		* mem? 
+		AND.W SHIFTROTMEMCHK,D3 *clear irrelevant bits
+		CMP.W SHIFTROTMEMCHK,D3 *compare to identity
+		BEQ identSHIFTROTMEM 
+		
+		* ASSUME REG
+		JMP identSHIFTROTREG
+		
+identSHIFTROTMEM
+		MOVE.W (A6),D3
+		
+		*ASD?
+		AND.W MEMSHIFTORROTISO,D3
+		CMP.W MEMASDCHK,D3
+		BEQ dMEM_ASD
+		
+		*LSD?
+		AND.W MEMSHIFTORROTISO,D3
+		CMP.W MEMLSDCHK,D3
+		BEQ dMEM_LSD
+		
+		*ROD?
+		AND.W MEMSHIFTORROTISO,D3
+		CMP.W MEMRODCHK,D3
+		BEQ dMEM_ROD
+		
+		JMP ddata
 
+identSHIFTROTREG
+		MOVE.W (A6),D3
+		
+		*ASD?
+		AND.W REGSHIFTORROTISO,D3
+		CMP.W REGASDCHK,D3
+		BEQ dREG_ASD
+		
+		*LSD?
+		AND.W REGSHIFTORROTISO,D3
+		CMP.W REGLSDCHK,D3
+		BEQ dREG_LSD
+		
+		*ROD?
+		AND.W REGSHIFTORROTISO,D3
+		CMP.W REGRODCHK,D3
+		BEQ dREG_ROD
+		
+		JMP ddata
 
 *****OPCODE IDENTIFIED*****
 
-dLSL *this is LSL
+dMEM_ASD *this is mem ASD
+		
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'A',(A5)+
+		MOVE.B #'S',(A5)+
+		
+		JSR identDIRECTION
+		
+		JMP endIdent
 
-dLSR *this is LSR
+dMEM_LSD *this is mem LSD
 
-dASR *this is ASR
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'L',(A5)+
+		MOVE.B #'S',(A5)+
 
-dASL *this is ASL
+		JSR identDIRECTION
+		
+		JMP endIdent		
 
-dROL *this is dROL
+dMEM_ROD *this is mem ROD
 
-dROR *this is dROR
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'R',(A5)+
+		MOVE.B #'O',(A5)+
+
+		JSR identDIRECTION
+		
+		JMP endIdent
+
+dREG_ASD *this is reg ASD
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'A',(A5)+
+		MOVE.B #'S',(A5)+
+		
+		JSR identDIRECTION
+		JSR identifyOPSIZE *identify size of operation and add to buffer
+		
+		JMP endIdent
+
+dREG_LSD *this is reg LSD
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'L',(A5)+
+		MOVE.B #'S',(A5)+
+		
+		JSR identDIRECTION
+		JSR identifyOPSIZE *identify size of operation and add to buffer
+		
+		JMP endIdent
+
+dREG_ROD *this is reg ROD
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'R',(A5)+
+		MOVE.B #'O',(A5)+
+		
+		JSR identDIRECTION
+		JSR identifyOPSIZE *identify size of operation and add to buffer
+		
+		JMP endIdent
 
 dMOVEA *this is MOVEA
 
@@ -564,7 +673,7 @@ dADDA *this is ADDA
 		
 		JMP endIdent
 
-data
+ddata
 		*print DATA
 		MOVE.B #1,D6 *set bad flag
 
@@ -572,7 +681,40 @@ data
 
 endIdent
         RTS
+*********************************************************************************
+* Method Name: identDIRECTION
+* Description:    adds the direction of the shift/rotation to the buffer
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*			      A6 should contain the pointer to the opcode
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*				  the size of the operation will be appended to the buffer
+*
+* MODIFIES:       D3
+*********************************************************************************
+identDIRECTION:
+		MOVE (A6),D3 *move the full opcode back into D3
+		AND.W DIRECTIONCHK,D3
+		CMP.W DIRECTIONCHK,D3
+		BEQ dirLEFT
+		JMP dirRIGHT
+		
+dirRIGHT
+		*add to buffer
+		MOVE.B #'R',(A5)+
+		
+		JMP endidentDIRECTION
 
+dirLEFT
+		*add to buffer
+		MOVE.B #'L',(A5)+
+		
+		JMP endidentDIRECTION
+
+endidentDIRECTION
+	
+		RTS
 *********************************************************************************
 * Method Name: identADDAsize
 * Description:    adds the size of the ADDA op to the buffer
@@ -1182,6 +1324,8 @@ chk0001				DC.W %0001000000000000
 chk0011				DC.W %0011000000000000
 chk0010				DC.W %0010000000000000
 
+chk1110				DC.W %1110000000000000
+
 RTS					DC.W %0100111001110101
 JSRMASK				DC.W %0100111010000000
 NOP					DC.W %0100111001110001
@@ -1202,8 +1346,9 @@ SUBQCHK             DC.W %0000000100000000
 EORISO           	DC.W %0000000100000000
 EORCHK	            DC.W %0000000100000000
 
-BRAISO              DC.W %0000111100000000
+BCCISO              DC.W %0000111100000000
 BRACHK              DC.W %0000000000000000
+
 
 MULSISO             DC.W %0000000110000000
 MULSCHK             DC.W %0000000111000000
@@ -1234,7 +1379,22 @@ MOVE_A_BSIZECHECK   DC.W %0001000000000000
 MOVE_A_WSIZECHECK   DC.W %0011000000000000
 MOVE_A_LSIZECHECK   DC.W %0010000000000000
 
-testOPCODE          DC.W %1011000001000000
+SHIFTROTMEMCHK		DC.W %0000000011000000
+
+MEMSHIFTORROTISO	DC.W %0000111000000000
+REGSHIFTORROTISO	DC.W %0000000000011000
+
+MEMASDCHK			DC.W %0000000000000000
+MEMLSDCHK			DC.W %0000001000000000
+MEMRODCHK			DC.W %0000011000000000
+
+REGASDCHK			DC.W %0000000000000000
+REGLSDCHK			DC.W %0000000000001000
+REGRODCHK			DC.W %0000000000011000
+
+DIRECTIONCHK		DC.W %0000000100000000
+
+testOPCODE          DC.W %1110000010011000
 
 
 * Ea variables.
@@ -1261,6 +1421,7 @@ TESTENDADDRESS		EQU	$00005000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 
