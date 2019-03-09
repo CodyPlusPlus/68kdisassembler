@@ -158,8 +158,6 @@ identifyOPCODE:
 
 *****IDENTIFY OPCODE FROM NIBBLE*****
 
-*TODO 
-
 ident0000 * is this ORI/CMPI/BCLR
 		MOVE (A6),D3 *move the full opcode back into D3
 
@@ -245,19 +243,30 @@ ident1000 * is this DIVS/OR
 		BEQ dDIVS *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 
-		*TODO: figure out how to do OR
+		* assume OR
+		JMP dOR
 
 		JMP data *could not identify
 
 ident1001 * is this SUB
 		MOVE (A6),D3 *move the full opcode back into D3
 
-		*TODO: figure out how to do SUB
+		* assume SUB
+		JMP dSUB
 
 		JMP data *could not identify
 
 ident1011 * is this EOR/CMP
 		MOVE (A6),D3 *move the full opcode back into D3
+		
+		* EOR?
+		AND.W EORISO,D3 *clear irrelevant bits
+		CMP.W EORCHK,D3 *compare to identity
+		BEQ dEOR *match?
+		MOVE (A6),D3 *move the full opcode back into D3
+		
+		* assume CMP
+		JMP dCMP
 
 		JMP data
 
@@ -1190,6 +1199,9 @@ BCLRCHK             DC.W %0000100010000000
 SUBQISO             DC.W %0000000100000000
 SUBQCHK             DC.W %0000000100000000
 
+EORISO           	DC.W %0000000100000000
+EORCHK	            DC.W %0000000100000000
+
 BRAISO              DC.W %0000111100000000
 BRACHK              DC.W %0000000000000000
 
@@ -1222,7 +1234,7 @@ MOVE_A_BSIZECHECK   DC.W %0001000000000000
 MOVE_A_WSIZECHECK   DC.W %0011000000000000
 MOVE_A_LSIZECHECK   DC.W %0010000000000000
 
-testOPCODE          DC.W %1101000011000000
+testOPCODE          DC.W %1011000001000000
 
 
 * Ea variables.
