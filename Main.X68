@@ -123,6 +123,9 @@ identifyOPCODE:
         CMP.W RTS,D3 *check if the OP is rts
         BEQ dRTS
 
+		CMP.W RESET,D3 *check if the OP is RESET
+		BEQ dRESET
+
         CMP.W NOP,D3 *check if the OP is NOP
         BEQ dNOP
 
@@ -232,6 +235,30 @@ ident0110 * is this BRA/BCS/BGE/BLT/BVC
 		AND.W BCCISO,D3 *clear irrelevant bits
 		CMP.W BRACHK,D3 *compare to identity
 		BEQ dBRA *match?
+		MOVE.W (A6),D3 *move the full opcode back into D3
+		
+		* BCS?
+		AND.W BCCISO,D3 *clear irrelevant bits
+		CMP.W BCSCHK,D3 *compare to identity
+		BEQ dBCS *match?
+		MOVE.W (A6),D3 *move the full opcode back into D3
+		
+		* BGE?
+		AND.W BCCISO,D3 *clear irrelevant bits
+		CMP.W BGECHK,D3 *compare to identity
+		BEQ dBGE *match?
+		MOVE.W (A6),D3 *move the full opcode back into D3
+		
+		* BLT?
+		AND.W BCCISO,D3 *clear irrelevant bits
+		CMP.W BLTCHK,D3 *compare to identity
+		BEQ dBLT *match?
+		MOVE.W (A6),D3 *move the full opcode back into D3
+		
+		* BVC?
+		AND.W BCCISO,D3 *clear irrelevant bits
+		CMP.W BVCCHK,D3 *compare to identity
+		BEQ dBVC *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		JMP ddata *could not identify
@@ -543,6 +570,9 @@ dMOVEM *this is MOVEM
 		MOVE.B #'V',(A5)+
 		MOVE.B #'E',(A5)+
         MOVE.B #'M',(A5)+
+        
+        *find and append size
+        JSR identMOVEMSIZE
 
 		JMP endIdent
 
@@ -578,6 +608,46 @@ dBRA *this is BRA
 		MOVE.B #'A',(A5)+
 
 		JMP endIdent
+		
+dBCS *this is BCS
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'C',(A5)+
+		MOVE.B #'S',(A5)+
+
+		JMP endIdent
+
+dBGE *this is BGE
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'G',(A5)+
+		MOVE.B #'E',(A5)+
+
+		JMP endIdent
+
+dBLT *this is BTL
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'T',(A5)+
+		MOVE.B #'L',(A5)+
+
+		JMP endIdent
+
+dBVC *this is BVC
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'V',(A5)+
+		MOVE.B #'C',(A5)+
+
+		JMP endIdent		
 
 dDIVS *this is DIVS
 
@@ -673,14 +743,63 @@ dADDA *this is ADDA
 		
 		JMP endIdent
 
-ddata
-		*print DATA
+ddata *this must be data
+		
+		*print DATA here maybe?
 		MOVE.B #1,D6 *set bad flag
 
+		JMP endIdent
+		
+dRESET *this is RESET
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'R',(A5)+
+		MOVE.B #'E',(A5)+
+		MOVE.B #'S',(A5)+
+		MOVE.B #'E',(A5)+
+		MOVE.B #'T',(A5)+
+		
 		JMP endIdent
 
 endIdent
         RTS
+*********************************************************************************
+* Method Name: identMOVEMSIZE
+* Description:    adds the size of the MOVEM operation to the buffer
+*
+* Preconditions:  A5 Should contain the pointer to the next space in good buffer.
+*			      A6 should contain the pointer to the opcode
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*				  the size of the operation will be appended to the buffer
+*
+* MODIFIES:       D3
+*********************************************************************************
+identMOVEMSIZE:
+		MOVE (A6),D3 *move the full opcode back into D3
+		AND.W MOVEMSIZECHK,D3
+		CMP.W MOVEMSIZECHK,D3
+		BEQ dMOVEML
+		JMP dMOVEMW
+		
+dMOVEMW
+		*add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'W',(A5)+
+		
+		JMP endidentMOVEMSIZE
+
+dMOVEML
+		*add to buffer
+		MOVE.B #'.',(A5)+
+		MOVE.B #'L',(A5)+
+		
+		JMP endidentMOVEMSIZE
+
+endidentMOVEMSIZE
+	
+		RTS
 *********************************************************************************
 * Method Name: identDIRECTION
 * Description:    adds the direction of the shift/rotation to the buffer
@@ -1348,6 +1467,10 @@ EORCHK	            DC.W %0000000100000000
 
 BCCISO              DC.W %0000111100000000
 BRACHK              DC.W %0000000000000000
+BCSCHK				DC.W %0000010100000000
+BGECHK				DC.W %0000110000000000
+BLTCHK				DC.W %0000110100000000
+BVCCHK				DC.W %0000100000000000
 
 
 MULSISO             DC.W %0000000110000000
@@ -1368,6 +1491,8 @@ MOVEMISO            DC.W %0000101110000000
 MOVEMCHK            DC.W %0000100010000000
 LEAISO              DC.W %0000000111000000
 LEACHK              DC.W %0000000111000000
+
+MOVEMSIZECHK		DC.W %0000000001000000
 
 SIZEISO             DC.W %0000000011000000
 BSIZECHECK          DC.W %0000000000000000
@@ -1394,7 +1519,9 @@ REGRODCHK			DC.W %0000000000011000
 
 DIRECTIONCHK		DC.W %0000000100000000
 
-testOPCODE          DC.W %1110000010011000
+RESET				DC.W %0100111001110000
+
+testOPCODE          DC.W %0100111001110000
 
 
 * Ea variables.
@@ -1421,6 +1548,7 @@ TESTENDADDRESS		EQU	$00005000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 
