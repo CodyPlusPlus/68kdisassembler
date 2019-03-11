@@ -37,9 +37,22 @@ START:
     *Your disassembler code goes here
     **************************************************
 
-    *MOVE.B #%00000011, D7
+
+
+    MOVE.B #%00111001, D7
+    JSR rotateModeReg
+
+    MOVEA #opcodebuff, A6
+    MOVE.L #$1234ABCD, (A6)
+    MOVEA #printbuff,A5
+    JSR decodeEA
+    MOVE.B #0,(A5)
+    MOVEA #printbuff,A1
+    JSR TrapTask13
+
+    *LEA testOPCODE,A6
     *MOVEA #printbuff,A5
-    *JSR decodeEA
+    *JSR identifyOPCODE
     *MOVE.B #0,(A5)
     *MOVEA #printbuff,A1
     *JSR TrapTask13
@@ -50,13 +63,6 @@ START:
     *MOVE.B #0,(A5)
     *MOVEA #printbuff,A1
     *JSR TrapTask13
-    
-    LEA testOPCODE,A6
-    MOVEA #printbuff,A5
-    JSR identifyOPCODE
-    MOVE.B #0,(A5)
-    MOVEA #printbuff,A1
-    JSR TrapTask13
 
     ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
     ;load start and end address as longs
@@ -105,7 +111,7 @@ method2:
 * Description:    Attempts to decode an opcode by first examining the first nibble,
 *                 then branching off to identify opcode
 *
-* Preconditions:  A6 should contain the pointer to the next word after opcode.
+* Preconditions:  A6 should contain the pointer to the opcode.
 *                 A5 Should contain the pointer to the next space in good buffer.
 *                 D6 should contain the good/bad flag.
 *
@@ -236,25 +242,25 @@ ident0110 * is this BRA/BCS/BGE/BLT/BVC
 		CMP.W BRACHK,D3 *compare to identity
 		BEQ dBRA *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* BCS?
 		AND.W BCCISO,D3 *clear irrelevant bits
 		CMP.W BCSCHK,D3 *compare to identity
 		BEQ dBCS *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* BGE?
 		AND.W BCCISO,D3 *clear irrelevant bits
 		CMP.W BGECHK,D3 *compare to identity
 		BEQ dBGE *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* BLT?
 		AND.W BCCISO,D3 *clear irrelevant bits
 		CMP.W BLTCHK,D3 *compare to identity
 		BEQ dBLT *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* BVC?
 		AND.W BCCISO,D3 *clear irrelevant bits
 		CMP.W BVCCHK,D3 *compare to identity
@@ -287,13 +293,13 @@ ident1001 * is this SUB
 
 ident1011 * is this EOR/CMP
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* EOR?
 		AND.W EORISO,D3 *clear irrelevant bits
 		CMP.W EORCHK,D3 *compare to identity
 		BEQ dEOR *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* assume CMP
 		JMP dCMP
 
@@ -312,90 +318,90 @@ ident1100 * is this MULS
 
 ident1101 * is this ADD/ADDA
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		AND.W ADDAISO,D3 *clear irrelevant bits
 		CMP.W ADDACHK,D3 *compare to identity
 		BEQ dADDA *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* assume ADD
 		JMP dADD
 
 		JMP ddata
-		
+
 identMOVE_A *is this MOVE/MOVEA
 		MOVE.W (A6),D3
-		
+
 		* MOVEA?
 		AND.W MOVEAISO,D3 *clear irrelevant bits
 		CMP.W MOVEACHK,D3 *compare to identity
-		BEQ dMOVEA	
+		BEQ dMOVEA
 
-		* ASSUME MOVE	
+		* ASSUME MOVE
 		JMP dMOVE
-		
+
 identREGMEM *is this a register or memory shift/rotate
 		MOVE.W (A6),D3
-		
-		* mem? 
+
+		* mem?
 		AND.W SHIFTROTMEMCHK,D3 *clear irrelevant bits
 		CMP.W SHIFTROTMEMCHK,D3 *compare to identity
-		BEQ identSHIFTROTMEM 
-		
+		BEQ identSHIFTROTMEM
+
 		* ASSUME REG
 		JMP identSHIFTROTREG
-		
+
 identSHIFTROTMEM
 		MOVE.W (A6),D3
-		
+
 		*ASD?
 		AND.W MEMSHIFTORROTISO,D3
 		CMP.W MEMASDCHK,D3
 		BEQ dMEM_ASD
-		
+
 		*LSD?
 		AND.W MEMSHIFTORROTISO,D3
 		CMP.W MEMLSDCHK,D3
 		BEQ dMEM_LSD
-		
+
 		*ROD?
 		AND.W MEMSHIFTORROTISO,D3
 		CMP.W MEMRODCHK,D3
 		BEQ dMEM_ROD
-		
+
 		JMP ddata
 
 identSHIFTROTREG
 		MOVE.W (A6),D3
-		
+
 		*ASD?
 		AND.W REGSHIFTORROTISO,D3
 		CMP.W REGASDCHK,D3
 		BEQ dREG_ASD
-		
+
 		*LSD?
 		AND.W REGSHIFTORROTISO,D3
 		CMP.W REGLSDCHK,D3
 		BEQ dREG_LSD
-		
+
 		*ROD?
 		AND.W REGSHIFTORROTISO,D3
 		CMP.W REGRODCHK,D3
 		BEQ dREG_ROD
-		
+
 		JMP ddata
 
 *****OPCODE IDENTIFIED*****
 
 dMEM_ASD *this is mem ASD
-		
+
 		*add to buffer
 		MOVE.B #' ',(A5)+
 		MOVE.B #'A',(A5)+
 		MOVE.B #'S',(A5)+
-		
+
 		JSR identDIRECTION
-		
+
 		JMP endIdent
 
 dMEM_LSD *this is mem LSD
@@ -406,8 +412,8 @@ dMEM_LSD *this is mem LSD
 		MOVE.B #'S',(A5)+
 
 		JSR identDIRECTION
-		
-		JMP endIdent		
+
+		JMP endIdent
 
 dMEM_ROD *this is mem ROD
 
@@ -417,7 +423,7 @@ dMEM_ROD *this is mem ROD
 		MOVE.B #'O',(A5)+
 
 		JSR identDIRECTION
-		
+
 		JMP endIdent
 
 dREG_ASD *this is reg ASD
@@ -426,10 +432,10 @@ dREG_ASD *this is reg ASD
 		MOVE.B #' ',(A5)+
 		MOVE.B #'A',(A5)+
 		MOVE.B #'S',(A5)+
-		
+
 		JSR identDIRECTION
 		JSR identifyOPSIZE *identify size of operation and add to buffer
-		
+
 		JMP endIdent
 
 dREG_LSD *this is reg LSD
@@ -438,10 +444,10 @@ dREG_LSD *this is reg LSD
 		MOVE.B #' ',(A5)+
 		MOVE.B #'L',(A5)+
 		MOVE.B #'S',(A5)+
-		
+
 		JSR identDIRECTION
 		JSR identifyOPSIZE *identify size of operation and add to buffer
-		
+
 		JMP endIdent
 
 dREG_ROD *this is reg ROD
@@ -450,10 +456,10 @@ dREG_ROD *this is reg ROD
 		MOVE.B #' ',(A5)+
 		MOVE.B #'R',(A5)+
 		MOVE.B #'O',(A5)+
-		
+
 		JSR identDIRECTION
 		JSR identifyOPSIZE *identify size of operation and add to buffer
-		
+
 		JMP endIdent
 
 dMOVEA *this is MOVEA
@@ -465,9 +471,9 @@ dMOVEA *this is MOVEA
 		MOVE.B #'V',(A5)+
 		MOVE.B #'E',(A5)+
 		MOVE.B #'A',(A5)+
-		
+
 		JMP identifyMOVE_ASIZE
-		
+
 		JMP endIdent
 
 dMOVE *this is MOVE
@@ -478,9 +484,9 @@ dMOVE *this is MOVE
 		MOVE.B #'O',(A5)+
 		MOVE.B #'V',(A5)+
 		MOVE.B #'E',(A5)+
-		
+
 		JMP identifyMOVE_ASIZE
-		
+
 		JMP endIdent
 
 dRTS *this is RTS
@@ -570,7 +576,7 @@ dMOVEM *this is MOVEM
 		MOVE.B #'V',(A5)+
 		MOVE.B #'E',(A5)+
         MOVE.B #'M',(A5)+
-        
+
         *find and append size
         JSR identMOVEMSIZE
 
@@ -608,7 +614,7 @@ dBRA *this is BRA
 		MOVE.B #'A',(A5)+
 
 		JMP endIdent
-		
+
 dBCS *this is BCS
 
 		*add to buffer
@@ -647,7 +653,7 @@ dBVC *this is BVC
 		MOVE.B #'V',(A5)+
 		MOVE.B #'C',(A5)+
 
-		JMP endIdent		
+		JMP endIdent
 
 dDIVS *this is DIVS
 
@@ -738,18 +744,18 @@ dADDA *this is ADDA
 		MOVE.B #'D',(A5)+
 		MOVE.B #'D',(A5)+
 		MOVE.B #'A',(A5)+
-		
+
 		JSR identADDAsize
-		
+
 		JMP endIdent
 
 ddata *this must be data
-		
+
 		*print DATA here maybe?
 		MOVE.B #1,D6 *set bad flag
 
 		JMP endIdent
-		
+
 dRESET *this is RESET
 
 		*add to buffer
@@ -759,7 +765,7 @@ dRESET *this is RESET
 		MOVE.B #'S',(A5)+
 		MOVE.B #'E',(A5)+
 		MOVE.B #'T',(A5)+
-		
+
 		JMP endIdent
 
 endIdent
@@ -782,23 +788,23 @@ identMOVEMSIZE:
 		CMP.W MOVEMSIZECHK,D3
 		BEQ dMOVEML
 		JMP dMOVEMW
-		
+
 dMOVEMW
 		*add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'W',(A5)+
-		
+
 		JMP endidentMOVEMSIZE
 
 dMOVEML
 		*add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'L',(A5)+
-		
+
 		JMP endidentMOVEMSIZE
 
 endidentMOVEMSIZE
-	
+
 		RTS
 *********************************************************************************
 * Method Name: identDIRECTION
@@ -818,21 +824,21 @@ identDIRECTION:
 		CMP.W DIRECTIONCHK,D3
 		BEQ dirLEFT
 		JMP dirRIGHT
-		
+
 dirRIGHT
 		*add to buffer
 		MOVE.B #'R',(A5)+
-		
+
 		JMP endidentDIRECTION
 
 dirLEFT
 		*add to buffer
 		MOVE.B #'L',(A5)+
-		
+
 		JMP endidentDIRECTION
 
 endidentDIRECTION
-	
+
 		RTS
 *********************************************************************************
 * Method Name: identADDAsize
@@ -846,7 +852,7 @@ endidentDIRECTION
 *
 * MODIFIES:       D3
 *				  D5
-*********************************************************************************
+************************************************,*********************************
 identADDAsize:
 		MOVE (A6),D3 *move the full opcode back into D3
 		AND.W ADDASIZECHK,D3
@@ -862,7 +868,7 @@ ADDAL
 		JMP endidentADDAsize
 
 endidentADDAsize
-	
+
 		RTS
 *********************************************************************************
 * Method Name: addBbuff
@@ -895,7 +901,7 @@ addWbuff:
 	    *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'W',(A5)+
-		RTS 
+		RTS
 *********************************************************************************
 * Method Name: addLbuff
 * Description:    adds L to buff
@@ -911,7 +917,7 @@ addLbuff:
 	    *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'L',(A5)+
-		RTS 
+		RTS
 *********************************************************************************
 * Method Name: identifyOPSIZE
 * Description:    Determines the size of the operation decoded and appends it to the printstream
@@ -982,7 +988,7 @@ sizeidenterror
 endidentsize
 
         RTS
-        
+
 *********************************************************************************
 * Method Name: identifyMOVE_ASIZE
 * Description:    Determines the size of the MOVE_A operation and appends it to the printstream
@@ -1020,7 +1026,7 @@ identifyMOVE_ASIZE:
 
         * size could not be determined (this should not happen.)
         JMP MOVE_Asizeidenterror
-        
+
 *****SIZE IDENTIFIED*****
 
 dMOVE_ABYTE * this is BYTE
@@ -1047,7 +1053,7 @@ dMOVE_ALONG * this is LONG
 MOVE_Asizeidenterror
 
 		MOVE.B #1,D6
-		
+
 endMOVE_Aidentsize
 
 		RTS
@@ -1055,7 +1061,31 @@ endMOVE_Aidentsize
 *********************************************************************************
 ********************************* EA Section ************************************
 *********************************************************************************
+dataRegsToSave REG D0-D5
 
+*********************************************************************************
+* Method Name:    rotateModeReg
+* Description:    * Rotates the mode and register bits. In one byte, it replaces
+*                   the first 3 bits with the second 3 bits and vice-versa.
+*
+* Preconditions:  * First byte of D7 should contain the mode/register bits.
+*
+* Postconditions: * Overrites D7 with the modified (shifted) value.
+*
+* Modifies: * D7
+*********************************************************************************
+rotateModeReg:
+        MOVEM.L dataRegsToSave, -(SP)          *Save the status of the registers.
+        MOVE.B D7, D5                          *Save the value of D7 in a temp variable.
+        ROL.B #3, D7                           *Rotate one 3 bits to the left, and
+        ROR.B #3, D5                           *the other 3 bits to the right.
+
+        AND.B second3Bitmask, D7               *Bitmask to only get the first and second
+        AND.B first3Bitmask, D5                *3 bits.
+
+        OR.B D5, D7                            *Or them to get one value.
+        MOVEM.L (SP)+, dataRegsToSave          *Restore the registers.
+        RTS
 
 *********************************************************************************
 * Method Name:    decodeEA
@@ -1063,22 +1093,22 @@ endMOVE_Aidentsize
 *                   Finding and adding the proper text to the buffer, it sets the
 *                   Good/bad flag and goes back to the calling function.
 *
-* Preconditions:  * D6 Should contain the 6 bits from EA field of opcode, within
+* Preconditions:  * D7 Should contain the 6 bits from EA field of opcode, within
 *                   The first byte.
 *                 * A6 should contain the pointer to the next word after opcode.
 *                 * A5 Should contain the pointer to the next space in good buffer.
-*                 * D7 should contain the good/bad flag.
+*                 * D6 should contain the good/bad flag.
 *
 * Postconditions: * Sets the memory pointer to the next word after EA at A6.
 *                 * Sets the pointer to next available space in good buffer at A5.
 *                 * Sets the good/bad flag at D6.
 *
-* Modifies: * D5
-*           * D6
+* Modifies: * D6
 *           * A5
 *           * A6
 *********************************************************************************
 decodeEA:
+        MOVEM.L dataRegsToSave, -(SP)          *Save the status of the registers.
         MOVE.B D7,D5                           *Bit mask the 3 bits in the middle
         AND.B #%00111000, D5
 
@@ -1106,7 +1136,7 @@ decodeEA:
 decodeAn
         MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
         AND.B #%00000111, D5
-        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+        JSR hexToAscii                        *Get the ASCII value.
 
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
 		MOVE.B #'A', (A5)+
@@ -1119,7 +1149,7 @@ decodeAn
 decodeDn
         MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
         AND.B #%00000111, D5
-        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+        JSR hexToAscii                        *Get the ASCII value.
 
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
 		MOVE.B #'D', (A5)+
@@ -1132,7 +1162,7 @@ decodeDn
 decodeAd
         MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
         AND.B #%00000111, D5
-        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+        JSR hexToAscii                        *Get the ASCII value.
 
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'(', (A5)+
@@ -1147,7 +1177,7 @@ decodeAd
 decodeAd_Increment
         MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
         AND.B #%00000111, D5
-        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+        JSR hexToAscii                        *Get the ASCII value.
 
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'(', (A5)+
@@ -1162,7 +1192,7 @@ decodeAd_Increment
 decodeAd_Decrement
         MOVE.B D7, D5                         *Bitmask the least significant 3 bits.
         AND.B #%00000111, D5
-        ADD.B #48, D5                         *Add 48 to get the ASCII value.
+        JSR hexToAscii                        *Get the ASCII value.
 
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'-', (A5)+
@@ -1175,7 +1205,7 @@ decodeAd_Decrement
 
 *For finding out which of the ((xxx).w and (xxx).l and immediate.) were referenced.
 decode111
-        MOVE.B D6,D5                          *Bitmask to select the last 6 bits.
+        MOVE.B D7,D5                          *Bitmask to select the last 6 bits.
         AND.B #%00111111, D5
 
         CMP.B modeAbs_Word, D5                *Check the remaining modes and
@@ -1191,14 +1221,25 @@ decode111
 
 *For decoding (xxx).W
 decodeAbs_Word
-
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'$', (A5)+
 
-        MOVE.W (A6)+, D5
+        MOVE.W (A6)+, D4                      *Set temp word in d4.
+        MOVE.B #0, D3                         *Setup a counter for loop.
 
-        MOVE.B D5, (A5)+
-        MOVE.B #'.', (A5)+
+loop_Abs_w
+        CMP.B #4, D3                          *Check if we've read 4 nibbles.
+        BEQ loop_Abs_w_done
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_Abs_w
+
+loop_Abs_w_done
+        MOVE.B #'.', (A5)+                    *Add the .W at the end.
         MOVE.B #'W', (A5)+
         MOVE.B #' ', (A5)+
 
@@ -1206,23 +1247,95 @@ decodeAbs_Word
 
 *For decoding (xxx).L
 decodeAbs_Long
-        *TODO: Write proper data to buffer, and set flag.
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'$', (A5)+
+
+        MOVE.L (A6)+, D4                      *Set temp word in d4.
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_Abs_l
+        CMP.B #8, D3                          *Check if we've read 8 nibbles.
+        BEQ loop_Abs_l_done
+        ROL.L #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_Abs_l
+
+loop_Abs_l_done
+        MOVE.B #'.', (A5)+                    *Add the .l at the end.
+        MOVE.B #'L', (A5)+
+        MOVE.B #' ', (A5)+
         JMP endEaDecode
 
 *For decoding immediate.
 decodeImmediate
-        *TODO: Write proper data to buffer, and set flag.
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'$', (A5)+
+
+        MOVE.W (A6)+, D4                      *Set temp word in d4.
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_Imd
+        CMP.B #4, D3                          *Check if we've read 4 nibbles.
+        BEQ loop_Imd_done
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_Imd
+
+loop_Imd_done
+        MOVE.B #' ', (A5)+
         JMP endEaDecode
 
 *If none of the valid modes were detetected, it comes here.
 invalidEA
         MOVE.B #1, D6                       *Set the bad flag.
+        MOVEM.L (SP)+, dataRegsToSave       *Restore the registers.
         RTS
 
 *All the sections come here after the execution of their codes.
 endEaDecode
         MOVE.B #0, D6                       *Set the good flag.
+        MOVEM.L (SP)+, dataRegsToSave       *Restore the registers.
         RTS
+
+*********************************************************************************
+* Method Name:    hexToAscii
+* Description:    * converts the nibble (hex) stored in the first byte of
+*                   D5 to an ASCII value.
+*
+* Preconditions:  * First byte of D5 should contain a value between 0-F
+*
+* Postconditions: * Sets the value in D5 to its corresponding ASCII value.
+*                 * Will just return if the number is invalid (>F)
+*
+* Modifies: * D5
+*********************************************************************************
+hexToAscii:
+    CMP.B #$F, D5
+    BGT invalid_number
+
+    CMP.B #10, D5
+    BLT hex_digit
+    BPL hex_character
+
+hex_digit
+    ADD.B #48, D5
+    RTS
+
+hex_character
+    ADD.B #55, D5
+    RTS
+
+invalid_number
+    RTS
+
 
 *********************************************************************************
 *********************** Trap 13, Variables, Constants ***************************
@@ -1427,6 +1540,7 @@ ascii_val           DC.B $31,$41,$30,$30,$31,$41,$30,$30 * Test value $1A001A00
 * I/O Variables.
 *Variables go here.
 printbuff           EQU $4000
+opcodebuff          EQU $6000
 
 * Opcode variables.
 chk0000				DC.W %0000000000000000
@@ -1536,6 +1650,12 @@ modeAbs_Word        DC.B %00111000      * (xxx).W
 modeAbs_Long        DC.B %00111001      * (xxx).L
 modeImmediate       DC.B %00111100      * Immediate
 
+firstNibble         DC.B %00001111      * For converting from hex.
+
+first3Bitmask       DC.B %00000111      * For mode/reg rotation.
+second3Bitmask      DC.B %00111000
+
+* End Ea Variables.
 
 isolateNibbleMask   DC.W %1111000000000000
 
