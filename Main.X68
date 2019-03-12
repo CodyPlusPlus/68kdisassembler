@@ -1,6 +1,6 @@
 *--------------------------------------------------------------------------
 * Title      : Disassembler (Some Assembly Required)
-* Written by : Cody Stuck, ___, Natallia Ustsiamchuk
+* Written by : Cody Stuck, Ardalan Ahanchi, Natallia Ustsiamchuk
 * Date       :
 *
 * Description: This code contains a method for you to use
@@ -32,10 +32,10 @@ START:
 
     *LEA MSG2, A1        ; buffer of chars to write
     *JSR TrapTask13
-    
+
     *LEA ascii_val, A1
     *JSR AsciiToHex     ;  example of how to convert ascii to hex
-    
+
     **************************************************
     *Your disassembler code goes here
     **************************************************
@@ -68,40 +68,40 @@ START:
 
     ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
     ;load start and end address as longs
-    
+
     *IO
     LEA         inputFile,A1        *Load the file
     MOVE        #51,D0              *Open the file
     TRAP        #15
-     
+
     LEA         good_buffer,A1      *Precondition for trap 53
-    MOVE.L      #startaddr,D2       *number of bytes to read   
-    MOVE.L      #53,D0              *Reading a file 
+    MOVE.L      #startaddr,D2       *number of bytes to read
+    MOVE.L      #53,D0              *Reading a file
     TRAP        #15
     JSR         AsciiToHex          *Convern to hex
     MOVE.L      D0,D2               *starting address hex value is moved to be stored longterm in D2
-    
+
     MOVEA.L     #0,A1               *Clear registry
-    
+
     *how to read second line in the file ???
-    MOVE.L      #startaddr,D2       *number of bytes to read   
-    MOVE.L      #53,D0              *Reading a file 
+    MOVE.L      #startaddr,D2       *number of bytes to read
+    MOVE.L      #53,D0              *Reading a file
     TRAP        #15
 
 
     *JSR         AsciiToHex          *Convern to hex
     *MOVE.L      D0,D3              *ending address hex value is moved to be stored longterm in D3
-    
-    
+
+
 
     ;loop from start to end, printing out the instruction or DATA if not recognized
     ;   use my method below (printStringToFileAndConsole) to print out the individual instruction (or DATA)
 
 
-*still working on this 
-IO_INVALID: 
+*still working on this
+IO_INVALID:
         *Display DATA YYYY
-    LEA         DATA_OUT,A1 
+    LEA         DATA_OUT,A1
 
 
     SIMHALT
@@ -416,45 +416,6 @@ identSHIFTROTREG
 		JMP ddata
 
 *****OPCODE IDENTIFIED*****
-
-* EA notes:
-*       Functions to call:
-*
-*       For instructions with:  xxx <immediate>, Xn
-*           JSR IncreaseOpPtr
-*           JSR setSrcModeReg
-*           JSR printImdData
-*           JSR printComma
-*           JSR decodeEA
-*
-*       For instructions with:  xxx An, Xn
-*           JSR IncreaseOpPtr
-*           JSR setSrcModeReg
-*           JSR printAn
-*           JSR printComma
-*           JSR decodeEA
-*
-*       For instructions with:  xxx Dn, Xn
-*           JSR IncreaseOpPtr
-*           JSR setSrcModeReg
-*           JSR printDn
-*           JSR printComma
-*           JSR decodeEA
-*
-*       For instructions with:  xxx An, Xn
-*           JSR IncreaseOpPtr
-*           JSR setSrcModeReg
-*           JSR printAn
-*           JSR printComma
-*           JSR decodeEA
-*
-*       For instructions with:  xxx Xn, Xn (Only MoveM)
-*           JSR IncreaseOpPtr
-*           JSR setSrcModeReg
-*           JSR rotateModeReg
-*           JSR decodeEA
-*           JSR printComma
-*           JSR decodeEA
 
 dMEM_ASD *this is mem ASD
 
@@ -1143,6 +1104,76 @@ endMOVE_Aidentsize
 		RTS
 
 *********************************************************************************
+******************************* EA Api Section **********************************
+*********************************************************************************
+
+*********************************************************************************
+* Method Name:    EApi_*
+* Description:    * A set of subroutines needed to decode and print the EA data.
+*                 * There are a total of 5 supported presets.
+*
+* Preconditions:  * A6 should contain the pointer to the opcode.
+*                 * A5 should contain the pointer to the output buffer.
+*                 * D6 should contain the good/bad flag.
+*
+* Postconditions: * Prints the data into the output buffer.
+*                 * Increases the opcode pointer to the next opcode.
+*
+* Modifies:       * D7
+*                 * D6
+*                 * A5
+*                 * A6
+*********************************************************************************
+
+*  For instructions with:  xxx <immediate>, Xn
+EApi_imd_Xn:
+        JSR IncreaseOpPtr
+        JSR setSrcModeReg                *Decode and Print the source.
+        JSR printImdData
+        JSR printComma
+        JSR setDestModeReg               *Decode and Print the destination.
+        JSR decodeEA
+        RTS
+
+* For instructions with:  xxx An, Xn
+EApi_An_Xn:
+        JSR IncreaseOpPtr
+        JSR setSrcModeReg                *Decode and Print the source.
+        JSR printAn
+        JSR printComma
+        JSR setDestModeReg               *Decode and Print the destination.
+        JSR decodeEA
+        RTS
+
+* For instructions with:  xxx Dn, Xn
+EApi_Dn_Xn:
+        JSR IncreaseOpPtr
+        JSR setSrcModeReg                *Decode and Print the source.
+        JSR printDn
+        JSR printComma
+        JSR setDestModeReg               *Decode and Print the destination.
+        JSR decodeEA
+        RTS
+
+* For instructions with:  xxx Xn, Xn (Only Move)
+EApi_Xn_Xn:
+        JSR IncreaseOpPtr
+        JSR setSrcModeReg                *Decode and Print the source.
+        JSR rotateModeReg
+        JSR decodeEA
+        JSR printComma
+        JSR setDestModeReg               *Decode and Print the destination.
+        JSR decodeEA
+        RTS
+
+* For instructions with:  xxx Xn
+EApi_Xn:
+        JSR IncreaseOpPtr
+        JSR setDestModeReg                *Decode and Print the source.
+        JSR decodeEA
+        RTS
+
+*********************************************************************************
 ******************************* Pre-EA Section **********************************
 *********************************************************************************
 
@@ -1685,36 +1716,36 @@ invalid_number                              *Just return if its not valid.
 * Written by : Berger, Modified by Nash
 * Date       : 3/1/2019
 * Description: Converts chars '0'-'9' and 'a'-'f' to 0-9,a-F
-*              Transforms/unpacks 8 chars (8b each) pointed to by A1 into 
-*              its (4b each) equivalent hex value 
-*  
+*              Transforms/unpacks 8 chars (8b each) pointed to by A1 into
+*              its (4b each) equivalent hex value
+*
 *  Preconditions & Input
-*       A1 (input) points to a memory buffer holding 8 ascii chars (not null-terminated) 
+*       A1 (input) points to a memory buffer holding 8 ascii chars (not null-terminated)
 *       This function calls another function (strip_ascii)
 *
 *  Postconditions & Output
-*       D7 (output) holds the converted value 
+*       D7 (output) holds the converted value
 *       Caller-Saved : D0 is temp, D6 is a loop var
 *----------------------------------------------------------------------------------
 AsciiToHexRegList REG D0,D6
-AsciiToHex     
+AsciiToHex
     MOVEM.L asciiToHexRegList, -(SP)  *save context
     CLR.L D7 * clear our return value
     MOVE.L #8, D6 ; and set up our loop counter
 
 chrLoop
     MOVE.B (A1)+,D0 * Get the first byte
-    jsr strip_ascii * Get rid of the ascii code    
+    jsr strip_ascii * Get rid of the ascii code
     OR.W D0,D7 * Load the bits into D7
-    
+
     subI.B #1,D6  *decrement our loop variable
     BEQ chrDone   *skip shifting if we are done
-    
+
     ASL.L #4,D7 * shift left 4 bits to prepare for next byte
     BRA chrLoop
 
 chrDone
-    MOVEM.L (SP)+,asciiToHexRegList 
+    MOVEM.L (SP)+,asciiToHexRegList
     RTS
 
 
