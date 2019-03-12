@@ -38,7 +38,6 @@ START:
     **************************************************
 
 
-
     MOVE.B #%00111001, D7
     JSR rotateModeReg
 
@@ -392,6 +391,45 @@ identSHIFTROTREG
 		JMP ddata
 
 *****OPCODE IDENTIFIED*****
+
+* EA notes:
+*       Functions to call:
+*
+*       For instructions with:  xxx <immediate>, Xn
+*           JSR IncreaseOpPtr
+*           JSR setSrcModeReg
+*           JSR printImdData
+*           JSR printComma
+*           JSR decodeEA
+*
+*       For instructions with:  xxx An, Xn
+*           JSR IncreaseOpPtr
+*           JSR setSrcModeReg
+*           JSR printAn
+*           JSR printComma
+*           JSR decodeEA
+*
+*       For instructions with:  xxx Dn, Xn
+*           JSR IncreaseOpPtr
+*           JSR setSrcModeReg
+*           JSR printDn
+*           JSR printComma
+*           JSR decodeEA
+*
+*       For instructions with:  xxx An, Xn
+*           JSR IncreaseOpPtr
+*           JSR setSrcModeReg
+*           JSR printAn
+*           JSR printComma
+*           JSR decodeEA
+*
+*       For instructions with:  xxx Xn, Xn (Only MoveM)
+*           JSR IncreaseOpPtr
+*           JSR setSrcModeReg
+*           JSR rotateModeReg
+*           JSR decodeEA
+*           JSR printComma
+*           JSR decodeEA
 
 dMEM_ASD *this is mem ASD
 
@@ -870,6 +908,7 @@ ADDAL
 endidentADDAsize
 
 		RTS
+
 *********************************************************************************
 * Method Name: addBbuff
 * Description:    adds B to buff
@@ -878,14 +917,21 @@ endidentADDAsize
 *
 * Postconditions: A5 will contain the pointer to the next space in the good buffer
 *				  .B will be added to the buffer
+*                 D5 will contain the number of bytes that were last identified.
 *
 * MODIFIES:       A5
+*                 D5
 *********************************************************************************
 addBbuff:
 	    *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'B',(A5)+
+
+        *Set the D5 to the number of bytes.
+        MOVE.B #1, D5
+
 		RTS
+
 *********************************************************************************
 * Method Name: addWbuff
 * Description:    adds W to buff
@@ -894,14 +940,21 @@ addBbuff:
 *
 * Postconditions: A5 will contain the pointer to the next space in the good buffer
 *				  .B will be added to the buffer
+*                 D5 will contain the number of bytes that were last identified.
 *
 * MODIFIES:       A5
+*                 D5
 *********************************************************************************
 addWbuff:
 	    *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'W',(A5)+
+
+        *Set the D5 to the number of bytes.
+        MOVE.B #2, D5
+
 		RTS
+
 *********************************************************************************
 * Method Name: addLbuff
 * Description:    adds L to buff
@@ -910,13 +963,19 @@ addWbuff:
 *
 * Postconditions: A5 will contain the pointer to the next space in the good buffer
 *				  .L will be added to the buffer
+*                 D5 will contain the number of bytes that were last identified.
 *
 * MODIFIES:       A5
+*                 D5
 *********************************************************************************
 addLbuff:
 	    *add to buffer
 		MOVE.B #'.',(A5)+
 		MOVE.B #'L',(A5)+
+
+        *Set the D5 to the number of bytes.
+        MOVE.B #4, D5
+
 		RTS
 *********************************************************************************
 * Method Name: identifyOPSIZE
@@ -1059,12 +1118,272 @@ endMOVE_Aidentsize
 		RTS
 
 *********************************************************************************
+******************************* Pre-EA Section **********************************
+*********************************************************************************
+
+*********************************************************************************
+* Method Name:    setDestModeReg (For Destination)
+* Description:    * Extracts the 6 bits needed from the OpCode and puts it in D7
+*                   It is used to put the bits needed in D7 to run the EA decoding.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*
+* Postconditions: * Sets the first byte of D7 to the bits (9-16) of the opcode.
+*
+* Modifies:       * D7
+*********************************************************************************
+setDestModeReg:
+        MOVE.W -(A6), D7
+        JSR IncreaseOpPtr
+        RTS
+
+*********************************************************************************
+* Method Name:    setSrcModeReg (For Source)
+* Description:    * Extracts the 6 bits needed from the OpCode and puts it in D7
+*                   It is used to put the bits needed in D7 to run the EA decoding.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*
+* Postconditions: * Sets the first byte of D7 to the bits (3-10) of the opcode.
+*
+* Modifies:       * D7
+*********************************************************************************
+setSrcModeReg:
+        MOVE.W -(A6), D7
+        ROR.W #6, D7
+        JSR IncreaseOpPtr
+        RTS
+
+*********************************************************************************
+* Method Name:    IncreaseOpPtr
+* Description:    * Increases the opcode pointer by 1 word. (Makes it point
+*                   either to the next opcode or the immediate data).
+*
+* Preconditions:  * A6 should contain the pointer to the opcode.
+*
+* Postconditions: * A6 will get increased by 2 bytes.
+*
+* Modifies:       * A6
+*********************************************************************************
+IncreaseOpPtr:
+        ADD.W #2, A6
+        RTS
+
+*********************************************************************************
+* Method Name:    printComma
+* Description:    * Prints a comma into the output buffer.
+*
+* Preconditions:  * A5 should contain a pointer to the good buffer.
+*
+* Postconditions: * A5 will contain a byte which is the ASCII value of a comma.
+*
+* Modifies:       * A5
+*********************************************************************************
+printComma:
+        MOVE.B #',', (A5)+
+        RTS
+
+
+*********************************************************************************
 ********************************* EA Section ************************************
 *********************************************************************************
 dataRegsToSave REG D0-D5
 
 *********************************************************************************
-* Method Name:    rotateModeReg
+* Method Name:    printAn (For Src)
+* Description:    * Prints the value defined in 6th, 5th, and 4th bits of the
+*                   byte defined in D7 (Only prints after Ax without checking mode).
+*
+* Preconditions:  * D7 Should contain 6 bits right before the EA mode/reg bits.
+*                 * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*                 * D6 should contain the good/bad flag.
+*
+* Postconditions: * Sets the pointer to next available space in good buffer at A5.
+*                 * Sets the good/bad flag at D6.
+*
+* Modifies:       * D6
+*                 * A5
+*                 * A6
+*********************************************************************************
+printAn:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        JSR rotateModeReg                     *Get the D7 ready for decoding (rotate)
+        JSR decodeAn                          *Decode, print and come back here.
+        RTS
+
+*********************************************************************************
+* Method Name:    printDn (For Src)
+* Description:    * Prints the value defined in 6th, 5th, and 4th bits of the
+*                   byte defined in D7 (Only prints after Dx without checking mode).
+*
+* Preconditions:  * D7 Should contain 6 bits right before the EA mode/reg bits.
+*                 * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*                 * D6 should contain the good/bad flag.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*                 * Sets the good/bad flag at D6.
+*
+* Modifies:       * D6
+*                 * A5
+*                 * A6
+*********************************************************************************
+printDn:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        JSR rotateModeReg                     *Get the D7 ready for decoding (rotate)
+        JSR decodeDn                          *Decode, print and come back here.
+        RTS
+
+*********************************************************************************
+* Method Name:    printImdData (For Src)
+* Description:    * Checks the register D5 to see what was the last set size value
+*                   (D5 = 1 means a byte, D5 = 2 means a word, D5 = 4 means a long)
+*                   Then it calls the appropriate printImdData subroutine.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*                 * D5 should contain the number of bytes which should be read
+*                   In the immmediate data.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*
+* Modifies:       * A5
+*                 * A6
+*********************************************************************************
+printImdData:
+        CMP.B #1, D5                        *Branch if flag is a byte.
+        BEQ printImdData_b
+
+        CMP.B #2, D5                        *Branch if flag is two bytes (Word).
+        BEQ printImdData_w
+
+        CMP.B #4, D5                        *Branch if flag is fours bytes (Long).
+        BEQ printImdData_l
+
+        RTS
+
+*********************************************************************************
+* Method Name:    printImdData_b (For Src)
+* Description:    * Reads and Prints the immediate byte data pointed to by the A6
+*                   It also increases the pointer to the next field.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*
+* Modifies:       * A5
+*                 * A6
+*********************************************************************************
+printImdData_b:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'#', (A5)+
+        MOVE.B #'$', (A5)+
+
+        MOVE.B (A6)+, D4                      *Set temp word in d4.
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_decodeImd_b
+        CMP.B #2, D3                          *Check if we've read 2 nibbles.
+        BEQ loop_decodeImd_b_done
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_decodeImd_b
+
+loop_decodeImd_b_done
+        MOVE.B #' ', (A5)+
+        MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
+        RTS
+
+*********************************************************************************
+* Method Name:    printImdData_w (For Src)
+* Description:    * Reads and Prints the immediate word data pointed to by the A6
+*                   It also increases the pointer to the next field.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*
+* Modifies:       * A5
+*                 * A6
+*********************************************************************************
+printImdData_w:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'#', (A5)+
+        MOVE.B #'$', (A5)+
+
+        MOVE.W (A6)+, D4                      *Set temp word in d4.
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_decodeImd_w
+        CMP.B #4, D3                          *Check if we've read 4 nibbles.
+        BEQ loop_decodeImd_w_done
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_decodeImd_w
+
+loop_decodeImd_w_done
+        MOVE.B #' ', (A5)+
+        MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
+        RTS
+
+*********************************************************************************
+* Method Name:    printImdData_w (For Src)
+* Description:    * Reads and Prints the immediate long data pointed to by the A6
+*                   It also increases the pointer to the next field.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*
+* Modifies:       * A5
+*                 * A6
+*********************************************************************************
+printImdData_l:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'#', (A5)+
+        MOVE.B #'$', (A5)+
+
+        MOVE.L (A6)+, D4                      *Set temp word in d4.
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_decodeImd_l
+        CMP.B #8, D3                          *Check if we've read 8 nibbles.
+        BEQ loop_decodeImd_l_done
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_decodeImd_l
+
+loop_decodeImd_l_done
+        MOVE.B #' ', (A5)+
+        MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
+        RTS
+
+*********************************************************************************
+* Method Name:    rotateModeReg (For Src)
 * Description:    * Rotates the mode and register bits. In one byte, it replaces
 *                   the first 3 bits with the second 3 bits and vice-versa.
 *
@@ -1072,7 +1391,7 @@ dataRegsToSave REG D0-D5
 *
 * Postconditions: * Overrites D7 with the modified (shifted) value.
 *
-* Modifies: * D7
+* Modifies:       * D7
 *********************************************************************************
 rotateModeReg:
         MOVEM.L dataRegsToSave, -(SP)          *Save the status of the registers.
@@ -1088,7 +1407,7 @@ rotateModeReg:
         RTS
 
 *********************************************************************************
-* Method Name:    decodeEA
+* Method Name:    decodeEA (For Dest)
 * Description:    * Decodes the 6 bits of the EA field of the instruction. After
 *                   Finding and adding the proper text to the buffer, it sets the
 *                   Good/bad flag and goes back to the calling function.
@@ -1103,9 +1422,9 @@ rotateModeReg:
 *                 * Sets the pointer to next available space in good buffer at A5.
 *                 * Sets the good/bad flag at D6.
 *
-* Modifies: * D6
-*           * A5
-*           * A6
+* Modifies:       * D6
+*                 * A5
+*                 * A6
 *********************************************************************************
 decodeEA:
         MOVEM.L dataRegsToSave, -(SP)          *Save the status of the registers.
@@ -1315,25 +1634,25 @@ endEaDecode
 * Postconditions: * Sets the value in D5 to its corresponding ASCII value.
 *                 * Will just return if the number is invalid (>F)
 *
-* Modifies: * D5
+* Modifies:       * D5
 *********************************************************************************
 hexToAscii:
-    CMP.B #$F, D5
+    CMP.B #$F, D5                           *Check for invalid values in the register.
     BGT invalid_number
 
-    CMP.B #10, D5
-    BLT hex_digit
+    CMP.B #10, D5                           *Check if its a digit or a number.
+    BLT hex_digit                           *Branch accordingly.
     BPL hex_character
 
 hex_digit
-    ADD.B #48, D5
+    ADD.B #48, D5                           *Add to get digit ascii value.
     RTS
 
-hex_character
+hex_character                               *Add to get character ascii value.
     ADD.B #55, D5
     RTS
 
-invalid_number
+invalid_number                              *Just return if its not valid.
     RTS
 
 
