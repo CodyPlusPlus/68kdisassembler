@@ -33,8 +33,8 @@ START:
     *LEA MSG2, A1        ; buffer of chars to write
     *JSR TrapTask13
     
-    LEA ascii_val, A1
-    JSR AsciiToHex     ;  example of how to convert ascii to hex
+    *LEA ascii_val, A1
+    *JSR AsciiToHex     ;  example of how to convert ascii to hex
     
     **************************************************
     *Your disassembler code goes here
@@ -70,14 +70,27 @@ START:
     ;load start and end address as longs
     
     *IO
-    LEA         inputFile,A1        *
-    MOVE        #51,D0
+    LEA         inputFile,A1        *Load the file
+    MOVE        #51,D0              *Open the file
+    TRAP        #15
+     
+    LEA         good_buffer,A1      *Precondition for trap 53
+    MOVE.L      #startaddr,D2       *number of bytes to read   
+    MOVE.L      #53,D0              *Reading a file 
+    TRAP        #15
+    JSR         AsciiToHex          *Convern to hex
+    MOVE.L      D0,D2               *starting address hex value is moved to be stored longterm in D2
+    
+    MOVEA.L     #0,A1               *Clear registry
+    
+    *how to read second line in the file ???
+    MOVE.L      #startaddr,D2       *number of bytes to read   
+    MOVE.L      #53,D0              *Reading a file 
     TRAP        #15
 
-    LEA         GOOD_BUFFER,A1
-    MOVE        #52,D0
-    TRAP        #15
-    JSR         AsciiToHex
+
+    *JSR         AsciiToHex          *Convern to hex
+    *MOVE.L      D0,D3              *ending address hex value is moved to be stored longterm in D3
     
     
 
@@ -1874,8 +1887,8 @@ printbuff           EQU $4000
 opcodebuff          EQU $6000
 inputFile           DC.B   'Config.cfg',0
 good_buffer         DS.B    100
-startaddr           DS.L    64
-endaddr             DS.L    64
+startaddr           DS.L    64 CR,LF,0
+endaddr             DS.L    64 CR,LF,EOD
 DATA_OUT            DC.B 'DATA',0      *output message when invalid instruction
 
 
@@ -1994,8 +2007,8 @@ second3Bitmask      DC.B %00111000
 
 * End Ea Variables.
 isolateNibbleMask   DC.W %1111000000000000
-TESTSTARTADDRESS	EQU $00004000
-TESTENDADDRESS		EQU	$00005000
+*TESTSTARTADDRESS	EQU $00004000
+*TESTENDADDRESS		EQU	$00005000
 
 
    END    START        ; last line of source
