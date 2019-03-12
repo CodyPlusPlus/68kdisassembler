@@ -39,7 +39,53 @@ START:
     **************************************************
     *Your disassembler code goes here
     **************************************************
+    
+    *A4 will be used for test loop here
+	MOVEA #startAddress,A4
 
+mainloop:
+	CMPA #endAddress,A4
+	BEQ endmainloop
+	
+	MOVE.B #0,D6 *reset bad flag
+	MOVEA #printbuff,A5 *reset printbuff
+	MOVEA A4,A6 *load in address
+	
+	*print address
+	
+	JSR identifyOPCODE
+	
+	CMP.B #1,D6
+	BEQ badbuff
+	
+	MOVE.B #0,(A5)
+	MOVEA #printbuff,A1
+	JSR TrapTask13
+	
+	ADDA #2,A4 * this is for TESTING
+	
+	JMP mainloop
+	
+badbuff
+	MOVEA #printbuff,A5 *reset printbuff
+	
+	MOVE.B #' ',(A5)+
+	MOVE.B #'D',(A5)+
+	MOVE.B #'A',(A5)+
+	MOVE.B #'T',(A5)+
+	MOVE.B #'A',(A5)+
+	*add data to print buffer here
+	MOVE.B #0,(A5)
+	
+	MOVEA #printbuff,A1
+	JSR TrapTask13
+	
+	ADDA #2,A4	
+	
+	JMP mainloop
+	
+endmainloop
+    *end goes here
 
     MOVE.B #%00111001, D7
     JSR rotateModeReg
@@ -198,7 +244,7 @@ ident0000 * is this ORI/CMPI/BCLR
 
 		* ORI?
 		AND.W ORIISO,D3 *clear irrelevant bits
-		CMP.W #ORICHK,D3 *compare to identity
+		CMP.W ORICHK,D3 *compare to identity
 		BEQ dORI *match?
 		MOVE (A6),D3 *move the full opcode back into D3
 
@@ -208,10 +254,23 @@ ident0000 * is this ORI/CMPI/BCLR
 		BEQ dCMPI *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
 
-		* BCLR?
-		AND.W BCLRISO,D3 *clear irrelevant bits
-		CMP.W BCLRCHK,D3 *compare to identity
-		BEQ dBCLR *match?
+		* BCLR_SA?
+		AND.W BCLR_SA_ISO,D3 *clear irrelevant bits
+		CMP.W BCLR_SA_CHK,D3 *compare to identity
+		BEQ dBCLR_SA *match?
+		MOVE.W (A6),D3 *move the full opcode back into D3
+		
+		* BCLR_SB?
+		AND.W BCLR_SB_ISO,D3 *clear irrelevant bits
+		CMP.W BCLR_SB_CHK,D3 *compare to identity
+		BEQ dBCLR_SB *match?
+		MOVE.W (A6),D3 *move the full opcode back into D3
+
+
+		* BCLR_D?
+		AND.W BCLR_D_ISO,D3 *clear irrelevant bits
+		CMP.W BCLR_D_CHK,D3 *compare to identity
+		BEQ dBCLR_D *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
 
 		JMP ddata *could not identify
@@ -597,7 +656,7 @@ dCMPI *this is CMPI
 
 		JMP endIdent
 
-dBCLR *this is BCLR
+dBCLR_SA *this is BCLR_SA
 
 		*add to buffer
 		MOVE.B #' ',(A5)+
@@ -607,6 +666,28 @@ dBCLR *this is BCLR
 		MOVE.B #'R',(A5)+
 
 		JMP endIdent
+		
+dBCLR_SB *this is BCLR_SB
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'C',(A5)+
+		MOVE.B #'L',(A5)+
+		MOVE.B #'R',(A5)+
+
+		JMP endIdent
+
+dBCLR_D *this is BCLR_D
+
+		*add to buffer
+		MOVE.B #' ',(A5)+
+		MOVE.B #'B',(A5)+
+		MOVE.B #'C',(A5)+
+		MOVE.B #'L',(A5)+
+		MOVE.B #'R',(A5)+
+
+		JMP endIdent		
 
 dNEG *this is NEG
 
@@ -1871,6 +1952,44 @@ countDone:
 
     RTS
 
+***********************************************************************
+*TEST DRIVER PROGRAM
+	RTS *get out of here!
+
+	MOVE D1,D2
+	MOVEA A1,A2
+	*MOVEM D1,D2
+	ADD D1,D2
+	ADDA A1,A2
+	SUB D1,D2
+	*SUBQ D1,D2
+	MULS D1,D2
+	DIVS D1,D2
+	LEA CR,A1
+	OR D1,D2
+	ORI #0,D1
+	NEG D1
+	EOR D1,D2
+	LSR D1,D2
+	LSL D1,D2
+	ASL D1,D2
+	ASR D1,D2
+	ROL D1,D2
+	ROR D1,D2
+	BCLR D1,D2
+	CMP D1,D2
+	CMPI #1,D1
+	JSR dontgohere
+	NOP
+	BCS dontgohere
+	BGE dontgohere
+	BLT dontgohere
+	BVC dontgohere
+	BRA dontgohere	
+
+dontgohere
+	RTS
+
 * Required variables and constants go here for your Disassembler
 CR                  EQU $0D
 LF                  EQU $0A
@@ -1891,6 +2010,8 @@ startaddr           DS.L    64 CR,LF,0
 endaddr             DS.L    64 CR,LF,EOD
 DATA_OUT            DC.B 'DATA',0      *output message when invalid instruction
 
+startAddress		EQU $00001D32
+endAddress			EQU $00001D7C
 
 * Opcode variables.
 chk0000				DC.W %0000000000000000
@@ -1920,8 +2041,15 @@ ORIISO              DC.W %0000111100000000
 ORICHK              DC.W %0000000000000000
 CMPIISO             DC.W %0000111100000000
 CMPICHK             DC.W %0000110000000000
-BCLRISO             DC.W %0000111111000000
-BCLRCHK             DC.W %0000100010000000
+
+BCLR_SA_ISO         DC.W %0000111111000000
+BCLR_SA_CHK         DC.W %0000100010000000
+
+BCLR_SB_ISO         DC.W %0000000000000000
+BCLR_SB_CHK         DC.W %0000000000000000
+
+BCLR_D_ISO          DC.W %0000000111000000
+BCLR_D_CHK          DC.W %0000000110000000
 
 SUBQISO             DC.W %0000000100000000
 SUBQCHK             DC.W %0000000100000000
@@ -1936,8 +2064,7 @@ BGECHK				DC.W %0000110000000000
 BLTCHK				DC.W %0000110100000000
 BVCCHK				DC.W %0000100000000000
 
-
-MULSISO             DC.W %0000000110000000
+MULSISO             DC.W %0000000111000000
 MULSCHK             DC.W %0000000111000000
 
 DIVSISO             DC.W %0000000111000000
@@ -2017,6 +2144,7 @@ isolateNibbleMask   DC.W %1111000000000000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
 
 
 
