@@ -1,6 +1,6 @@
 *--------------------------------------------------------------------------
 * Title      : Disassembler (Some Assembly Required)
-* Written by : Cody Stuck, ___, ___
+* Written by : Cody Stuck, ___, Natallia Ustsiamchuk
 * Date       :
 *
 * Description: This code contains a method for you to use
@@ -32,7 +32,10 @@ START:
 
     *LEA MSG2, A1        ; buffer of chars to write
     *JSR TrapTask13
-
+    
+    LEA ascii_val, A1
+    JSR AsciiToHex     ;  example of how to convert ascii to hex
+    
     **************************************************
     *Your disassembler code goes here
     **************************************************
@@ -65,9 +68,28 @@ START:
 
     ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
     ;load start and end address as longs
+    
+    *IO
+    LEA         inputFile,A1        *
+    MOVE        #51,D0
+    TRAP        #15
+
+    LEA         GOOD_BUFFER,A1
+    MOVE        #52,D0
+    TRAP        #15
+    JSR         AsciiToHex
+    
+    
 
     ;loop from start to end, printing out the instruction or DATA if not recognized
     ;   use my method below (printStringToFileAndConsole) to print out the individual instruction (or DATA)
+
+
+*still working on this 
+IO_INVALID: 
+        *Display DATA YYYY
+    LEA         DATA_OUT,A1 
+
 
     SIMHALT
 
@@ -1645,6 +1667,65 @@ hex_character                               *Add to get character ascii value.
 invalid_number                              *Just return if its not valid.
     RTS
 
+*----------------------------------------------------------------------------------
+* Method Name: AsciiToHex
+* Written by : Berger, Modified by Nash
+* Date       : 3/1/2019
+* Description: Converts chars '0'-'9' and 'a'-'f' to 0-9,a-F
+*              Transforms/unpacks 8 chars (8b each) pointed to by A1 into 
+*              its (4b each) equivalent hex value 
+*  
+*  Preconditions & Input
+*       A1 (input) points to a memory buffer holding 8 ascii chars (not null-terminated) 
+*       This function calls another function (strip_ascii)
+*
+*  Postconditions & Output
+*       D7 (output) holds the converted value 
+*       Caller-Saved : D0 is temp, D6 is a loop var
+*----------------------------------------------------------------------------------
+AsciiToHexRegList REG D0,D6
+AsciiToHex     
+    MOVEM.L asciiToHexRegList, -(SP)  *save context
+    CLR.L D7 * clear our return value
+    MOVE.L #8, D6 ; and set up our loop counter
+
+chrLoop
+    MOVE.B (A1)+,D0 * Get the first byte
+    jsr strip_ascii * Get rid of the ascii code    
+    OR.W D0,D7 * Load the bits into D7
+    
+    subI.B #1,D6  *decrement our loop variable
+    BEQ chrDone   *skip shifting if we are done
+    
+    ASL.L #4,D7 * shift left 4 bits to prepare for next byte
+    BRA chrLoop
+
+chrDone
+    MOVEM.L (SP)+,asciiToHexRegList 
+    RTS
+
+
+**********************************************************************
+* SUBROUTINE: strip_ascii
+* remove the ascii code from the digits 0-9,a-f, or A-F
+* Input Parameters: <D0> = ascii code
+*
+* Return parameters: D0.B = number 0...F, returned as 00...0F
+* Registers used internally: D0
+* Assumptions: D0 contains $30-$39, $41-$46 or $61-66
+*
+***********************************************************************
+strip_ascii
+      CMP.B #$39,D0 * Is it in range of 0-9?
+      BLE sub30 * Its a number
+      CMP.B #$46,D0 * Is is A...F?
+      BLE sub37 * Its A...F
+      SUB.B #$57,D0 * Its a...f
+      BRA ret_sa * Go back
+sub37 SUB.B #$37,D0 * Strip 37
+      BRA ret_sa * Go back
+sub30 SUB.B #$30,D0 * Strip 30
+ret_sa RTS * Go back
 
 *********************************************************************************
 *********************** Trap 13, Variables, Constants ***************************
@@ -1777,65 +1858,6 @@ countDone:
 
     RTS
 
-*----------------------------------------------------------------------------------
-* Method Name: AsciiToHex
-* Written by : Berger, Modified by Nash
-* Date       : 3/1/2019
-* Description: Converts chars '0'-'9' and 'a'-'f' to 0-9,a-F
-*              Transforms/unpacks 8 chars (8b each) pointed to by A1 into
-*              its (4b each) equivalent hex value
-*
-*  Preconditions & Input
-*       A1 (input) points to a memory buffer holding 8 ascii chars (not null-terminated)
-*       This function calls another function (strip_ascii)
-*
-*  Postconditions & Output
-*       D7 (output) holds the converted value
-*       Caller-Saved : D0 is temp, D6 is a loop var
-*----------------------------------------------------------------------------------
-AsciiToHexRegList REG D0,D6
-AsciiToHex
-    MOVEM.L asciiToHexRegList, -(SP)  *save context
-    CLR.L D7 * clear our return value
-    MOVE.L #8, D6 ; and set up our loop counter
-
-chrLoop
-    MOVE.B (A1)+,D0 * Get the first byte
-    jsr strip_ascii * Get rid of the ascii code
-    OR.W D0,D7 * Load the bits into D7
-
-    subI.B #1,D6  *decrement our loop variable
-    BEQ chrDone   *skip shifting if we are done
-
-    ASL.L #4,D7 * shift left 4 bits to prepare for next byte
-    BRA chrLoop
-
-chrDone
-    MOVEM.L (SP)+,asciiToHexRegList
-    RTS
-
-**********************************************************************
-* SUBROUTINE: strip_ascii
-* remove the ascii code from the digits 0-9,a-f, or A-F
-* Input Parameters: <D0> = ascii code
-*
-* Return parameters: D0.B = number 0...F, returned as 00...0F
-* Registers used internally: D0
-* Assumptions: D0 contains $30-$39, $41-$46 or $61-66
-*
-***********************************************************************
-strip_ascii
-      CMP.B #$39,D0 * Is it in range of 0-9?
-      BLE sub30 * Its a number
-      CMP.B #$46,D0 * Is is A...F?
-      BLE sub37 * Its A...F
-      SUB.B #$57,D0 * Its a...f
-      BRA ret_sa * Go back
-sub37 SUB.B #$37,D0 * Strip 37
-      BRA ret_sa * Go back
-sub30 SUB.B #$30,D0 * Strip 30
-ret_sa RTS * Go back
-
 * Required variables and constants go here for your Disassembler
 CR                  EQU $0D
 LF                  EQU $0A
@@ -1850,6 +1872,12 @@ ascii_val           DC.B $31,$41,$30,$30,$31,$41,$30,$30 * Test value $1A001A00
 *Variables go here.
 printbuff           EQU $4000
 opcodebuff          EQU $6000
+inputFile           DC.B   'Config.cfg',0
+good_buffer         DS.B    100
+startaddr           DS.L    64
+endaddr             DS.L    64
+DATA_OUT            DC.B 'DATA',0      *output message when invalid instruction
+
 
 * Opcode variables.
 chk0000				DC.W %0000000000000000
@@ -1965,11 +1993,10 @@ first3Bitmask       DC.B %00000111      * For mode/reg rotation.
 second3Bitmask      DC.B %00111000
 
 * End Ea Variables.
-
 isolateNibbleMask   DC.W %1111000000000000
-
 TESTSTARTADDRESS	EQU $00004000
 TESTENDADDRESS		EQU	$00005000
+
 
    END    START        ; last line of source
 
@@ -1977,6 +2004,8 @@ TESTENDADDRESS		EQU	$00005000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
 
 
 
