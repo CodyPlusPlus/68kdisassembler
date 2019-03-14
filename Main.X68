@@ -39,36 +39,33 @@ START:
     **************************************************
     *Your disassembler code goes here
     **************************************************
-    
+
     *A4 will be used for test loop here
-	MOVEA #startAddress,A4
+	MOVEA #startAddress,A6
 
 mainloop:
-	CMPA #endAddress,A4
+	CMPA #endAddress,A6
 	BEQ endmainloop
-	
+
 	MOVE.B #0,D6 *reset bad flag
 	MOVEA #printbuff,A5 *reset printbuff
-	MOVEA A4,A6 *load in address
-	
+
 	*print address
-	
+
 	JSR identifyOPCODE
-	
+
 	CMP.B #1,D6
 	BEQ badbuff
-	
+
 	MOVE.B #0,(A5)
 	MOVEA #printbuff,A1
 	JSR TrapTask13
-	
-	ADDA #2,A4 * this is for TESTING
-	
+
 	JMP mainloop
-	
+
 badbuff
 	MOVEA #printbuff,A5 *reset printbuff
-	
+
 	MOVE.B #' ',(A5)+
 	MOVE.B #'D',(A5)+
 	MOVE.B #'A',(A5)+
@@ -76,14 +73,14 @@ badbuff
 	MOVE.B #'A',(A5)+
 	*add data to print buffer here
 	MOVE.B #0,(A5)
-	
+
 	MOVEA #printbuff,A1
 	JSR TrapTask13
-	
-	ADDA #2,A4	
-	
+
+	ADDA #2,A4
+
 	JMP mainloop
-	
+
 endmainloop
     *end goes here
 
@@ -259,7 +256,7 @@ ident0000 * is this ORI/CMPI/BCLR
 		CMP.W BCLR_SA_CHK,D3 *compare to identity
 		BEQ dBCLR_SA *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-		
+
 		* BCLR_SB?
 		AND.W BCLR_SB_ISO,D3 *clear irrelevant bits
 		CMP.W BCLR_SB_CHK,D3 *compare to identity
@@ -485,6 +482,8 @@ dMEM_ASD *this is mem ASD
 
 		JSR identDIRECTION
 
+        JSR EApi_Data_Xn
+
 		JMP endIdent
 
 dMEM_LSD *this is mem LSD
@@ -496,6 +495,8 @@ dMEM_LSD *this is mem LSD
 
 		JSR identDIRECTION
 
+        JSR EApi_Data_Xn
+
 		JMP endIdent
 
 dMEM_ROD *this is mem ROD
@@ -506,6 +507,8 @@ dMEM_ROD *this is mem ROD
 		MOVE.B #'O',(A5)+
 
 		JSR identDIRECTION
+
+        JSR EApi_Data_Xn
 
 		JMP endIdent
 
@@ -519,6 +522,8 @@ dREG_ASD *this is reg ASD
 		JSR identDIRECTION
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Data_Dn
+
 		JMP endIdent
 
 dREG_LSD *this is reg LSD
@@ -530,6 +535,8 @@ dREG_LSD *this is reg LSD
 
 		JSR identDIRECTION
 		JSR identifyOPSIZE *identify size of operation and add to buffer
+
+        JSR EApi_Data_Dn
 
 		JMP endIdent
 
@@ -543,6 +550,8 @@ dREG_ROD *this is reg ROD
 		JSR identDIRECTION
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Data_Dn
+
 		JMP endIdent
 
 dMOVEA *this is MOVEA
@@ -555,7 +564,9 @@ dMOVEA *this is MOVEA
 		MOVE.B #'E',(A5)+
 		MOVE.B #'A',(A5)+
 
-		JMP identifyMOVE_ASIZE
+		JSR identifyMOVE_ASIZE
+
+        JSR EApi_An_Xn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -568,7 +579,9 @@ dMOVE *this is MOVE
 		MOVE.B #'V',(A5)+
 		MOVE.B #'E',(A5)+
 
-		JMP identifyMOVE_ASIZE
+		JSR identifyMOVE_ASIZE
+
+        JSR EApi_Xn_Xn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -602,6 +615,8 @@ dORI *this is ORI
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Imd_Xn      *Decode and Print EA.
+
 		JMP endIdent
 
 dCMPI *this is CMPI
@@ -615,6 +630,8 @@ dCMPI *this is CMPI
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Imd_Xn      *Decode and Print EA.
+
 		JMP endIdent
 
 dBCLR_SA *this is BCLR_SA
@@ -627,7 +644,7 @@ dBCLR_SA *this is BCLR_SA
 		MOVE.B #'R',(A5)+
 
 		JMP endIdent
-		
+
 dBCLR_SB *this is BCLR_SB
 
 		*add to buffer
@@ -648,7 +665,7 @@ dBCLR_D *this is BCLR_D
 		MOVE.B #'L',(A5)+
 		MOVE.B #'R',(A5)+
 
-		JMP endIdent		
+		JMP endIdent
 
 dNEG *this is NEG
 
@@ -660,6 +677,8 @@ dNEG *this is NEG
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Xn         *Decode and Print EA.
+
 		JMP endIdent
 
 dJSR *this is JSR
@@ -669,6 +688,8 @@ dJSR *this is JSR
 		MOVE.B #'J',(A5)+
 		MOVE.B #'S',(A5)+
 		MOVE.B #'R',(A5)+
+
+        JSR EApi_Xn          *Decode and Print EA.
 
 		JMP endIdent
 
@@ -685,6 +706,8 @@ dMOVEM *this is MOVEM
         *find and append size
         JSR identMOVEMSIZE
 
+        JSR EApi_Movem      *Decode and Print Movem.
+
 		JMP endIdent
 
 dLEA *this is LEA
@@ -694,6 +717,8 @@ dLEA *this is LEA
 		MOVE.B #'L',(A5)+
 		MOVE.B #'E',(A5)+
 		MOVE.B #'A',(A5)+
+
+        JSR EApi_An_Xn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -707,6 +732,8 @@ dSUBQ *this is SUBQ
 		MOVE.B #'Q',(A5)+
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
+
+        JSR EApi_Data_Xn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -727,6 +754,8 @@ dBCS *this is BCS
 		MOVE.B #'B',(A5)+
 		MOVE.B #'C',(A5)+
 		MOVE.B #'S',(A5)+
+
+        JSR EApi_Displacement
 
 		JMP endIdent
 
@@ -769,6 +798,8 @@ dDIVS *this is DIVS
 		MOVE.B #'V',(A5)+
 		MOVE.B #'S',(A5)+
 
+        JSR EApi_Dn_Xn      *Decode and Print EA.
+
 		JMP endIdent
 
 dOR *this is OR
@@ -779,6 +810,8 @@ dOR *this is OR
 		MOVE.B #'R',(A5)+
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
+
+        JSR EApi_Dn_Xn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -792,6 +825,8 @@ dSUB *this is SUB
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Dn_Xn      *Decode and Print EA.
+
 		JMP endIdent
 
 dEOR *this is EOR
@@ -803,6 +838,8 @@ dEOR *this is EOR
 		MOVE.B #'R',(A5)+
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
+
+        JSR EApi_Xn_Dn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -816,6 +853,8 @@ dCMP *this is CMP
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Dn_Xn      *Decode and Print EA.
+
 		JMP endIdent
 
 dMULS *this is MULS
@@ -826,6 +865,8 @@ dMULS *this is MULS
 		MOVE.B #'U',(A5)+
 		MOVE.B #'L',(A5)+
 		MOVE.B #'S',(A5)+
+
+        JSR EApi_Dn_Xn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -839,6 +880,8 @@ dADD *this is ADD
 
 		JSR identifyOPSIZE *identify size of operation and add to buffer
 
+        JSR EApi_Dn_Xn      *Decode and Print EA.
+
 		JMP endIdent
 
 dADDA *this is ADDA
@@ -851,6 +894,8 @@ dADDA *this is ADDA
 		MOVE.B #'A',(A5)+
 
 		JSR identADDAsize
+
+        JSR EApi_An_Xn      *Decode and Print EA.
 
 		JMP endIdent
 
@@ -1187,11 +1232,12 @@ endMOVE_Aidentsize
 *********************************************************************************
 ******************************* EA Api Section **********************************
 *********************************************************************************
+dataRegsToSave REG D0-D5
 
 *********************************************************************************
 * Method Name:    EApi_*
 * Description:    * A set of subroutines needed to decode and print the EA data.
-*                 * There are a total of 5 supported presets.
+*                 * There are a total of 7 supported presets.
 *
 * Preconditions:  * A6 should contain the pointer to the opcode.
 *                 * A5 should contain the pointer to the output buffer.
@@ -1207,51 +1253,111 @@ endMOVE_Aidentsize
 *********************************************************************************
 
 *  For instructions with:  xxx <immediate>, Xn
-EApi_imd_Xn:
+EApi_Imd_Xn:
         JSR IncreaseOpPtr
-        JSR setSrcModeReg                *Decode and Print the source.
+        JSR setModeReg                   *Decode and Print the destination.
+        JSR switchModeReg
         JSR printImdData
         JSR printComma
-        JSR setDestModeReg               *Decode and Print the destination.
+        JSR switchBackModeReg                *Decode and Print the source.
         JSR decodeEA
+
         RTS
 
 * For instructions with:  xxx An, Xn
 EApi_An_Xn:
         JSR IncreaseOpPtr
-        JSR setSrcModeReg                *Decode and Print the source.
-        JSR printAn
-        JSR printComma
-        JSR setDestModeReg               *Decode and Print the destination.
+        JSR setModeReg                   *Decode and Print the destination.
         JSR decodeEA
+        JSR printComma
+        JSR switchModeReg                *Decode and Print the source.
+        JSR printAn
+
         RTS
 
 * For instructions with:  xxx Dn, Xn
 EApi_Dn_Xn:
         JSR IncreaseOpPtr
-        JSR setSrcModeReg                *Decode and Print the source.
+        JSR setModeReg                   *Decode and Print the destination.
+        JSR decodeEA
+        JSR printComma
+        JSR switchModeReg                *Decode and Print the source.
+        JSR printDn
+
+        RTS
+
+* For instructions with:  xxx Xn, Dn
+EApi_Xn_Dn:
+        JSR IncreaseOpPtr
+        JSR setModeReg                   *Decode and Print the destination.
+        JSR switchModeReg                *Decode and Print the source.
         JSR printDn
         JSR printComma
-        JSR setDestModeReg               *Decode and Print the destination.
+        JSR switchBackModeReg
         JSR decodeEA
+
         RTS
 
 * For instructions with:  xxx Xn, Xn (Only Move)
 EApi_Xn_Xn:
         JSR IncreaseOpPtr
-        JSR setSrcModeReg                *Decode and Print the source.
-        JSR rotateModeReg
+        JSR setModeReg                   *Decode and Print the destination.
         JSR decodeEA
         JSR printComma
-        JSR setDestModeReg               *Decode and Print the destination.
+        JSR switchModeReg                *Decode and Print the source.
+        JSR rotateModeReg
         JSR decodeEA
+        JSR rotateModeReg                     *Rotate back.
+
         RTS
 
 * For instructions with:  xxx Xn
 EApi_Xn:
         JSR IncreaseOpPtr
-        JSR setDestModeReg                *Decode and Print the source.
+        JSR setModeReg                   *Decode and Print the source.
         JSR decodeEA
+        RTS
+
+* For instructions with:  xxx Data, Dn
+EApi_Data_Dn:
+        JSR IncreaseOpPtr
+        JSR setModeReg
+        JSR switchModeReg
+        JSR printData
+        JSR printComma
+        JSR switchBackModeReg
+        JSR printDn_std
+
+        RTS
+
+* For instructions with:  xxx Data, Xn
+EApi_Data_Xn:
+        JSR IncreaseOpPtr
+        JSR setModeReg
+        JSR switchModeReg
+        JSR printData
+        JSR printComma
+        JSR switchBackModeReg
+        JSR decodeEA
+
+        RTS
+
+* For instructions with:  xxx Displacement
+EApi_Displacement:
+        JSR IncreaseOpPtr
+        JSR setModeReg
+        JSR printDisplacement
+
+        RTS
+
+* For only movem.
+EApi_Movem:
+        JSR IncreaseOpPtr
+        JSR setModeReg
+        JSR printMovem *Not fully functional yet.
+        JSR printComma
+        JSR decodeEA
+
         RTS
 
 *********************************************************************************
@@ -1259,36 +1365,49 @@ EApi_Xn:
 *********************************************************************************
 
 *********************************************************************************
-* Method Name:    setDestModeReg (For Destination)
-* Description:    * Extracts the 6 bits needed from the OpCode and puts it in D7
-*                   It is used to put the bits needed in D7 to run the EA decoding.
+* Method Name:    setModeReg
+* Description:    * Extracts the instruction from the A6 and puts it in D7, it
+*                   initially puts the 6 bits of the ea field starting from bit 0.
 *
 * Preconditions:  * A6 should contain the pointer to the next word after opcode.
 *
-* Postconditions: * Sets the first byte of D7 to the bits (9-16) of the opcode.
+* Postconditions: * Sets the value in D7 to the opcode.
 *
 * Modifies:       * D7
 *********************************************************************************
-setDestModeReg:
+setModeReg:
         MOVE.W -(A6), D7
         JSR IncreaseOpPtr
         RTS
 
 *********************************************************************************
-* Method Name:    setSrcModeReg (For Source)
-* Description:    * Extracts the 6 bits needed from the OpCode and puts it in D7
-*                   It is used to put the bits needed in D7 to run the EA decoding.
+* Method Name:    switchModeReg:
+* Description:    * Rotates the instruction to right, so the next 6 bits before
+*                   the EA section are in the first byte of D7
 *
 * Preconditions:  * A6 should contain the pointer to the next word after opcode.
 *
-* Postconditions: * Sets the first byte of D7 to the bits (3-10) of the opcode.
+* Postconditions: * Rotates D7 to right by 6 bits.
 *
 * Modifies:       * D7
 *********************************************************************************
-setSrcModeReg:
-        MOVE.W -(A6), D7
+switchModeReg:
         ROR.W #6, D7
-        JSR IncreaseOpPtr
+        RTS
+
+*********************************************************************************
+* Method Name:    switchBackModeReg:
+* Description:    * Rotates the instruction to left, so the EA section is
+*                   in the first byte of D7
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*
+* Postconditions: * Rotates back D7 to left by 6 bits.
+*
+* Modifies:       * D7
+*********************************************************************************
+switchBackModeReg:
+        ROL.W #6, D7
         RTS
 
 *********************************************************************************
@@ -1324,7 +1443,6 @@ printComma:
 *********************************************************************************
 ********************************* EA Section ************************************
 *********************************************************************************
-dataRegsToSave REG D0-D5
 
 *********************************************************************************
 * Method Name:    printAn (For Src)
@@ -1346,7 +1464,8 @@ dataRegsToSave REG D0-D5
 printAn:
         MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
         JSR rotateModeReg                     *Get the D7 ready for decoding (rotate)
-        JSR decodeAn                          *Decode, print and come back here.
+        JMP decodeAn                          *Decode, print and come back here.
+        JSR rotateModeReg                     *Rotate back.
         RTS
 
 *********************************************************************************
@@ -1370,7 +1489,69 @@ printAn:
 printDn:
         MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
         JSR rotateModeReg                     *Get the D7 ready for decoding (rotate)
-        JSR decodeDn                          *Decode, print and come back here.
+        JMP decodeDn                          *Decode, print and come back here.
+        JSR rotateModeReg                     *Rotate back.
+        RTS
+
+*********************************************************************************
+* Method Name:    printDn_std
+* Description:    * Prints the value defined in 3th, 2th, and 1th bits of the
+*                   byte defined in D7 (Only prints after Dx without checking mode).
+*
+* Preconditions:  * D7 Should contain 6 bits right before the EA mode/reg bits.
+*                 * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*                 * D6 should contain the good/bad flag.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*                 * Sets the good/bad flag at D6.
+*
+* Modifies:       * D6
+*                 * A5
+*                 * A6
+*********************************************************************************
+printDn_std:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        JMP decodeDn                          *Decode, print and come back here.
+        RTS
+
+*********************************************************************************
+* Method Name:    printData
+* Description:    * Prints the data defined in 6th, 5th, and 4th bits of the
+*                   byte defined in D7 (Only prints after Dx without checking mode).
+*
+* Preconditions:  * D7 Should contain 6 bits right before the EA mode/reg bits.
+*                 * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*                 * D6 should contain the good/bad flag.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*                 * Sets the good/bad flag at D6.
+*
+* Modifies:       * D6
+*                 * A5
+*                 * A6
+*********************************************************************************
+printData:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        JSR rotateModeReg                     *Get the D7 ready for decoding (rotate)
+
+        MOVE.B D7, D5
+        AND.B #%00000111, D5
+        JSR hexToAscii                        *Get the ASCII value.
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+		MOVE.B #'#', (A5)+
+        MOVE.B #'$', (A5)+
+		MOVE.B D5, (A5)+
+        MOVE.B #' ', (A5)+
+
+        MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
+        MOVE.B #0, D6                         *Set the good flag.
+
+        JSR rotateModeReg                     *Rotate back.
         RTS
 
 *********************************************************************************
@@ -1400,6 +1581,138 @@ printImdData:
         CMP.B #4, D5                        *Branch if flag is fours bytes (Long).
         BEQ printImdData_l
 
+        RTS
+
+*********************************************************************************
+* Method Name:    printMovem
+* Description:    * Decodes and prints the resigster list for the MoveM.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: * Sets the memory pointer to the next word after list at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*
+* Modifies:       * A5
+*                 * A6
+*********************************************************************************
+printMovem:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+
+        MOVE.B (A6)+, D4
+        MOVE.B #0, D3                         *Setup a counter.
+
+        MOVE.B D7, D5                         *Check if pre-decrement mode.
+        AND.B #%00111000, D5
+        CMP.B modeAd_Decrement, D5
+        BEQ dec_Movem_data_loop
+
+Movem_adr_loop
+        CMP.B #8, D3                          *Check if the loop is done.
+        BEQ Movem_adr_loop_done
+
+        MOVE.B D4, D2                         *Check to see if the current bit is set.
+        ROR.B D3, D2
+        AND.B first1Bitmask, D2
+        CMP.B #1, D2
+        BEQ printMovemAn                      *If it is, print the address register.
+
+        ADD.B #1, D3
+        JMP Movem_adr_loop
+
+printMovemAn
+        MOVE.B #'A', (A5)+                    *Print data register with slash.
+        MOVE.B D3, D5
+        JSR hexToAscii
+        MOVE.B D5, (A5)+
+        MOVE.B #'/', (A5)+
+        ADD.B #1, D3
+        JMP Movem_adr_loop
+
+Movem_adr_loop_done
+        MOVE.B (A6)+, D4                      *Read another byte for addresses.
+        MOVE.B #0, D3
+        JMP Movem_data_loop
+
+Movem_data_loop
+        CMP.B #8, D3                          *Check if the loop is done.
+        BEQ Movem_done
+
+        MOVE.B D4, D2                         *Check to see if the current bit is set.
+        ROR.B D3, D2
+        AND.B first1Bitmask, D2
+        CMP.B #1, D2
+        BEQ printMovemDn                      *If it is, print the data register.
+
+        ADD.B #1, D3
+        JMP Movem_data_loop
+
+printMovemDn
+        MOVE.B #'D', (A5)+                    *Print data register with slash.
+        MOVE.B D3, D5
+        JSR hexToAscii
+        MOVE.B D5, (A5)+
+        MOVE.B #'/', (A5)+
+        ADD.B #1, D3
+        JMP Movem_data_loop
+
+dec_Movem_data_loop
+        CMP.B #8, D3                          *Check if the loop is done.
+        BEQ dec_Movem_data_loop_done
+
+        MOVE.B D4, D2                         *Check to see if the current bit is set.
+        ROR.B D3, D2
+        AND.B first1Bitmask, D2
+        CMP.B #1, D2
+        BEQ dec_printMovemDn                      *If it is, print the address register.
+
+        ADD.B #1, D3
+        JMP dec_Movem_data_loop
+
+dec_printMovemDn
+        MOVE.B #'D', (A5)+                    *Print data register with slash.
+        MOVE.B D3, D5
+        SUBI.B #7, D5
+        NEG.B D5
+        JSR hexToAscii
+        MOVE.B D5, (A5)+
+        MOVE.B #'/', (A5)+
+        ADD.B #1, D3
+        JMP dec_Movem_data_loop
+
+dec_Movem_data_loop_done
+        MOVE.B (A6)+, D4                      *Read another byte for addresses.
+        MOVE.B #0, D3
+        JMP dec_Movem_adr_loop
+
+dec_Movem_adr_loop
+        CMP.B #8, D3                          *Check if the loop is done.
+        BEQ Movem_done
+
+        MOVE.B D4, D2                         *Check to see if the current bit is set.
+        ROR.B D3, D2
+        AND.B first1Bitmask, D2
+        CMP.B #1, D2
+        BEQ dec_printMovemAn                  *If it is, print the data register.
+
+        ADD.B #1, D3
+        JMP dec_Movem_adr_loop
+
+dec_printMovemAn
+        MOVE.B #'A', (A5)+                    *Print data register with slash.
+        MOVE.B D3, D5
+        SUBI.B #7, D5
+        NEG.B D5
+        JSR hexToAscii
+        MOVE.B D5, (A5)+
+        MOVE.B #'/', (A5)+
+        ADD.B #1, D3
+        JMP dec_Movem_adr_loop
+
+Movem_done
+        MOVE.B #' ', -(A5)                    *Remove the last slash.
+        MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
         RTS
 
 *********************************************************************************
@@ -1533,6 +1846,7 @@ loop_decodeImd_l_done
 rotateModeReg:
         MOVEM.L dataRegsToSave, -(SP)          *Save the status of the registers.
         MOVE.B D7, D5                          *Save the value of D7 in a temp variable.
+        MOVE.B D7, D4
         ROL.B #3, D7                           *Rotate one 3 bits to the left, and
         ROR.B #3, D5                           *the other 3 bits to the right.
 
@@ -1540,7 +1854,105 @@ rotateModeReg:
         AND.B first3Bitmask, D5                *3 bits.
 
         OR.B D5, D7                            *Or them to get one value.
+
+        AND.B #%11000000, D4                   *Restore the first two bits.
+        AND.B #%00111111, D7
+        OR.B D4, D7
+
         MOVEM.L (SP)+, dataRegsToSave          *Restore the registers.
+        RTS
+
+*********************************************************************************
+* Method Name:    printDisplacement
+* Description:    * Reads and Prints the displacement data based on values in
+*                   D7. Reads data at A6 if its a word or long displacement.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*                 * D7 should contain the opcode.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*
+* Modifies:       * A5
+*                 * A6
+*********************************************************************************
+printDisplacement:
+        MOVEM.L dataRegsToSave, -(SP)          *Save the status of the registers.
+
+        CMP.B wordDisplacement, D7
+        BEQ printDis_w
+
+        CMP.B longDisplacement, D7
+        BEQ printDis_l
+
+*For printing a byte displacement.
+printDis_b
+        MOVE.B D7, D4
+        *ADD.B PC, D4
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'$', (A5)+
+
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_printDis_b
+        CMP.B #2, D3                          *Check if we've read 2 nibbles.
+        BEQ endPrintDisplacement
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D5.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_printDis_b
+
+*For printing a word displacement.
+printDis_w
+        MOVE.W (A6)+, D4
+        *ADD.W PC, D4
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'$', (A5)+
+
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_printDis_w
+        CMP.B #4, D3                          *Check if we've read 4 nibbles.
+        BEQ endPrintDisplacement
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D5.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_printDis_w
+
+*For printing a long displacement.
+printDis_l
+        MOVE.L (A6)+, D4
+        *ADD.L PC, D4
+
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'$', (A5)+
+
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_printDis_l
+        CMP.B #8, D3                          *Check if we've read 4 nibbles.
+        BEQ endPrintDisplacement
+        ROL.W #4, D4                          *Rotate, get the first nibble and store in D5.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_printDis_l
+
+endPrintDisplacement
+        MOVE.B #' ', (A5)+
+        MOVE.B #0, D6                       *Set the good flag.
+        MOVEM.L (SP)+, dataRegsToSave       *Restore the registers.
         RTS
 
 *********************************************************************************
@@ -1989,34 +2401,37 @@ countDone:
 
 	MOVE D1,D2
 	MOVEA A1,A2
-	*MOVEM D1,D2
+	MOVEM D1-D4,(A2)
+	MOVEM D1-D4/A3-A5,-(A2)
 	ADD D1,D2
 	ADDA A1,A2
 	SUB D1,D2
-	*SUBQ D1,D2
+	SUBQ #3,D2
 	MULS D1,D2
 	DIVS D1,D2
 	LEA CR,A1
+	LEA $0000000D.L, A1
 	OR D1,D2
 	ORI #0,D1
 	NEG D1
 	EOR D1,D2
-	LSR D1,D2
-	LSL D1,D2
-	ASL D1,D2
-	ASR D1,D2
-	ROL D1,D2
-	ROR D1,D2
-	BCLR D1,D2
+	LSR #3,D2
+	LSL #3,D2
+	ASL #3,D2
+	ASR #3,D2
+	ROL #3,D2
+	ROR #3,D2
+	*BCLR #3,D2
 	CMP D1,D2
 	CMPI #1,D1
 	JSR dontgohere
-	NOP
+	JSR $00001EEE.L
 	BCS dontgohere
-	BGE dontgohere
-	BLT dontgohere
-	BVC dontgohere
-	BRA dontgohere	
+    *NOP
+	*BGE dontgohere
+	*BLT dontgohere
+	*BVC dontgohere
+	*BRA dontgohere
 
 dontgohere
 	RTS
@@ -2041,8 +2456,8 @@ startaddr           DS.L    64 CR,LF,0
 endaddr             DS.L    64 CR,LF,EOD
 DATA_OUT            DC.B 'DATA',0      *output message when invalid instruction
 
-startAddress		EQU $00001D32
-endAddress			EQU $00001D7C
+startAddress		EQU $00002164
+endAddress			EQU $000021AA
 
 * Opcode variables.
 chk0000				DC.W %0000000000000000
@@ -2147,8 +2562,8 @@ testOPCODE          DC.W %0100111001110000
 
 
 * Ea variables.
-modeAn              DC.B %00000000      * An
-modeDn              DC.B %00001000      * Dn
+modeDn              DC.B %00000000      * Dn
+modeAn              DC.B %00001000      * An
 modeAd              DC.B %00010000      * (Ad)
 modeAd_Increment    DC.B %00011000      * (Ad)+
 modeAd_Decrement    DC.B %00100000      * -(Ad)
@@ -2163,6 +2578,11 @@ firstNibble         DC.B %00001111      * For converting from hex.
 first3Bitmask       DC.B %00000111      * For mode/reg rotation.
 second3Bitmask      DC.B %00111000
 
+wordDisplacement    DC.B %00000000      * For detecting a word displacement.
+longDisplacement    DC.B %11111111      * For detecting a long displacement.
+
+first1Bitmask       DC.B %00000001      *For movem.
+
 * End Ea Variables.
 isolateNibbleMask   DC.W %1111000000000000
 *TESTSTARTADDRESS	EQU $00004000
@@ -2175,6 +2595,22 @@ isolateNibbleMask   DC.W %1111000000000000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
