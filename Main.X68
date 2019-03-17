@@ -2,22 +2,9 @@
 *--------------------------------------------------------------------------
 * Title      : Disassembler (Some Assembly Required)
 * Written by : Cody Stuck, Ardalan Ahanchi, Natallia Ustsiamchuk
-* Date       :
-*
-* Description: This code contains a method for you to use
-* with your Disassembler project IO, and a short demo of
-* how to call this method in the body of the "START" code.
-*
-* Hints and Tips:
-*   -Follow the code commenting convention here for file & method headers
-*   -Don't rename this file name (Main.X68)
-*   -Don't r g the start address ($1000)
-*   -Don't rename or edit the IO method I've provided you with here
-*   -Don't rename the config.cfg file or change the file format:
-*    <Long_StartAddress>\CR\LF
-*    <Long_En ress>\CR\LF<EOF>
+* Date       : March 17, 2019
 *---------------------------------------------------------------------------
-    ORG    $1000    *Don't change this; see hints and tips above
+    ORG    $1000    *Don't change this.
 *---------------------------------------------------------------------------
 START:
 
@@ -25,6 +12,7 @@ START:
 ********************************* I/O Section ***********************************
 *********************************************************************************
 
+*Reads the starting and ending address into A6 and A4 respectively.
 readConfigFile
         LEA inputFile,A1                    *Load the file to read
         MOVE #51,D0                         *Open the file
@@ -46,13 +34,86 @@ readConfigFile
         JSR AsciiToHex
         MOVE.L D7, A4
 
+*Main loop which does the decoding.
 mainloop
         CMPA A4,A6
         BGT endmainloop
 
-        MOVE.B #0,D6                          *reset bad flag
-        MOVEA #printbuff,A5                   *reset printbuff
+        MOVE.B #0,D6                        *Reset bad flag
+        MOVEA #printbuff,A5                 *Reset printbuff
 
+        JSR printAddress
+	    JSR identifyOPCODE
+
+	    CMP.B #1,D6                         *Check if the badflag is set.
+	    BEQ badbuff
+
+	    MOVE.B #0,(A5)
+	    MOVEA #printbuff,A1
+	    JSR TrapTask13
+
+	    JMP mainloop
+
+*Comes here when the badflag is set.
+badbuff
+	    MOVEA #printbuff,A5                 *Reset printbuff
+
+        JSR printAddress
+
+        MOVE.B #' ',(A5)+                   *Print the data keyword.
+	    MOVE.B #'D',(A5)+
+	    MOVE.B #'A',(A5)+
+	    MOVE.B #'T',(A5)+
+        MOVE.B #'A',(A5)+
+
+        MOVE.B #' ',(A5)+
+
+        MOVE.W -(A6), D4                    *print Instruction.
+        ADDA #2, A6
+        MOVE.B #'$', (A5)+
+        MOVE.B #0, D3
+printInstructionLoop
+        CMP.B #4, D3                        *Check if we've read 4 nibbles.
+        BEQ printInstructionLoop_done
+        ROL.W #4, D4                        *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                      *Get the ASCII value.
+        MOVE.B D5, (A5)+                    *Add the new ASCII byte to the output.
+        ADD.B #1, D3                        *Increase the counter.
+        JMP printInstructionLoop
+
+printInstructionLoop_done
+        MOVE.B #' ', (A5)+
+	    MOVE.B #0,(A5)
+
+        MOVEA #printbuff,A1                  *Print the data.
+	    JSR TrapTask13
+        JMP mainloop
+
+*Comes here when there is an error reading the config file, or invalid addresses are
+*given to the program (If ending address < starting address).
+invalidConfig
+        SIMHALT
+
+*Last part of the program.
+endmainloop
+        SIMHALT
+
+*********************************************************************************
+* Method Name: printAddress
+* Description:    Prints the address of A6 in to the output buffer specified in A5.
+*
+* Preconditions:  A6 should contain the address to print.
+*                 A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: A5 will contain the pointer to the next space in the good buffer
+*
+* MODIFIES:       A6
+*                 A5
+*********************************************************************************
+printAddress:
+        MOVEM.L D1-D7, -(SP)                  *Save the status of the registers.
         MOVE.L A6, D4                         *print address
         MOVE.B #'$', (A5)+
         MOVE.B #0, D3
@@ -70,41 +131,8 @@ printAddressLoop
 
 printAddressLoop_done
         MOVE.B #' ', (A5)+
-
-	    JSR identifyOPCODE
-
-	    CMP.B #1,D6
-	    BEQ badbuff
-
-	    MOVE.B #0,(A5)
-	    MOVEA #printbuff,A1
-	    JSR TrapTask13
-
-	    JMP mainloop
-
-badbuff
-	    MOVEA #printbuff,A5 *reset printbuff
-
-	    MOVE.B #' ',(A5)+
-	    MOVE.B #'D',(A5)+
-	    MOVE.B #'A',(A5)+
-	    MOVE.B #'T',(A5)+
-        MOVE.B #'A',(A5)+
-	    *add data to print buffer here
-	    MOVE.B #0,(A5)
-
-	    MOVEA #printbuff,A1
-	    JSR TrapTask13
-
-	    ADDA #2,A6
-
-        JMP mainloop
-
-invalidConfig
-        SIMHALT
-
-endmainloop
-        SIMHALT
+        MOVEM.L (SP)+, D1-D7                   *Restore the registers.
+        RTS
 
 *********************************************************************************
 ******************************* OP Code Section *********************************
@@ -591,7 +619,7 @@ dBCLR_D *this is BCLR_D
 		MOVE.B #'L',(A5)+
 		MOVE.B #'R',(A5)+
 
-        JSR EApi_Dn_Xn
+        JSR EApi_Xn_Dn
 
 		JMP endIdent
 
@@ -1407,7 +1435,7 @@ printComma:
 *                 * D6 should contain the good/bad flag.
 *
 * Postconditions: * Sets the pointer to next available space in good buffer at A5.
-*                 * Sets the good/bad flag at D6.
+*                 * Sets the good/bad flag at D26.
 *
 * Modifies:       * D6
 *                 * A5
@@ -1525,7 +1553,7 @@ printData:
 *********************************************************************************
 printImdData:
         CMP.B #1, D5                        *Branch if flag is a byte.
-        BEQ printImdData_b
+        BEQ printImdData_w
 
         CMP.B #2, D5                        *Branch if flag is two bytes (Word).
         BEQ printImdData_w
@@ -1712,45 +1740,6 @@ Movem_done
         RTS
 
 *********************************************************************************
-* Method Name:    printImdData_b (For Src)
-* Description:    * Reads and Prints the immediate byte data pointed to by the A6
-*                   It also increases the pointer to the next field.
-*
-* Preconditions:  * A6 should contain the pointer to the next word after opcode.
-*                 * A5 Should contain the pointer to the next space in good buffer.
-*
-* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
-*                 * Sets the pointer to next available space in good buffer at A5.
-*
-* Modifies:       * A5
-*                 * A6
-*********************************************************************************
-printImdData_b:
-        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
-        MOVE.B #' ', (A5)+                    *Add data to print buffer.
-        MOVE.B #'#', (A5)+
-        MOVE.B #'$', (A5)+
-
-        MOVE.B (A6)+, D4                      *Set temp word in d4.
-        MOVE.B #0, D3                         *Setup a counter for loop.
-
-loop_decodeImd_b
-        CMP.B #2, D3                          *Check if we've read 2 nibbles.
-        BEQ loop_decodeImd_b_done
-        ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
-        MOVE.B D4, D5
-        AND.B firstNibble, D5
-        JSR hexToAscii                        *Get the ASCII value.
-        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
-        ADD.B #1, D3                          *Increase the counter.
-        JMP loop_decodeImd_b
-
-loop_decodeImd_b_done
-        MOVE.B #' ', (A5)+
-        MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
-        RTS
-
-*********************************************************************************
 * Method Name:    printImdData_w (For Src)
 * Description:    * Reads and Prints the immediate word data pointed to by the A6
 *                   It also increases the pointer to the next field.
@@ -1815,7 +1804,7 @@ printImdData_l:
 loop_decodeImd_l
         CMP.B #8, D3                          *Check if we've read 8 nibbles.
         BEQ loop_decodeImd_l_done
-        ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
+        ROL.L #4, D4                          *Rotate, get the first nibble and store in D4.
         MOVE.B D4, D5
         AND.B firstNibble, D5
         JSR hexToAscii                        *Get the ASCII value.
@@ -1970,6 +1959,7 @@ endPrintDisplacement
 *                 * A6 should contain the pointer to the next word after opcode.
 *                 * A5 Should contain the pointer to the next space in good buffer.
 *                 * D6 should contain the good/bad flag.
+*                 * D5 should contain the size flag.
 *
 * Postconditions: * Sets the memory pointer to the next word after EA at A6.
 *                 * Sets the pointer to next available space in good buffer at A5.
@@ -1981,8 +1971,10 @@ endPrintDisplacement
 *********************************************************************************
 decodeEA:
         MOVEM.L dataRegsToSave, -(SP)          *Save the status of the registers.
+        MOVE.B D5, D3                          *Backup the size flag to D3.
         MOVE.B D7,D5                           *Bit mask the 3 bits in the middle
         AND.B #%00111000, D5
+
 
         CMP.B modeAn, D5                       *Check every supported mode based
         BEQ decodeAn                           *on the 3 selected bits.
@@ -2142,26 +2134,61 @@ loop_Abs_l_done
         MOVE.B #' ', (A5)+
         JMP endEaDecode
 
-*For decoding immediate.
 decodeImmediate
+        CMP.B #1, D3                        *Branch if flag is a byte just do a word.
+        BEQ decodeImmediate_w
+
+        CMP.B #2, D3                        *Branch if flag is two bytes (Word).
+        BEQ decodeImmediate_w
+
+        CMP.B #4, D3                        *Branch if flag is fours bytes (Long).
+        BEQ decodeImmediate_l
+
+        JMP invalidEA
+
+*For decoding immediate word.
+decodeImmediate_W
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'$', (A5)+
 
         MOVE.W (A6)+, D4                      *Set temp word in d4.
         MOVE.B #0, D3                         *Setup a counter for loop.
 
-loop_Imd
+loop_Imd_w
         CMP.B #4, D3                          *Check if we've read 4 nibbles.
-        BEQ loop_Imd_done
+        BEQ loop_Imd_done_w
         ROL.W #4, D4                          *Rotate, get the first nibble and store in D4.
         MOVE.B D4, D5
         AND.B firstNibble, D5
         JSR hexToAscii                        *Get the ASCII value.
         MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
         ADD.B #1, D3                          *Increase the counter.
-        JMP loop_Imd
+        JMP loop_Imd_w
 
-loop_Imd_done
+loop_Imd_done_w
+        MOVE.B #' ', (A5)+
+        JMP endEaDecode
+
+*For decoding immediate word.
+decodeImmediate_l
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'$', (A5)+
+
+        MOVE.L (A6)+, D4                      *Set temp word in d4.
+        MOVE.B #0, D3                         *Setup a counter for loop.
+
+loop_Imd_l
+        CMP.B #8, D3                          *Check if we've read 4 nibbles.
+        BEQ loop_Imd_done_l
+        ROL.L #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_Imd_l
+
+loop_Imd_done_l
         MOVE.B #' ', (A5)+
         JMP endEaDecode
 
@@ -2399,48 +2426,6 @@ countDone:
 
     RTS
 
-***********************************************************************
-*TEST DRIVER PROGRAM
-	RTS *get out of here!
-
-	MOVE D1,D2
-	MOVEA A1,A2
-	MOVEM D1-D4,(A2)
-	MOVEM D1-D4/A3-A5,-(A2)
-	ADD D1,D2
-	ADDA A1,A2
-	SUB D1,D2
-	SUBQ #3,D2
-	MULS D1,D2
-	DIVS D1,D2
-	LEA CR,A1
-	LEA $0000000D.L, A1
-	OR D1,D2
-	ORI #12,D1
-	NEG D1
-	EOR D1,D2
-	LSR #3,D2
-	LSR (A2)
-	LSL.L #3,D2
-	ASL #3,D2
-	ASR #3,D2
-	ROL #3,D2
-	ROR #3,D2
-	BCLR #3,D2
-	CMP D1,D2
-	CMPI #1,D1
-	JSR dontgohere
-	JSR $00001EEE.L
-	BCS dontgohere
-    NOP
-	*BGE dontgohere
-	*BLT dontgohere
-	*BVC dontgohere
-	*BRA dontgohere
-
-dontgohere
-	RTS
-
 * Required variables and constants go here for your Disassembler
 CR                  EQU $0D
 LF                  EQU $0A
@@ -2560,6 +2545,8 @@ RESET				DC.W %0100111001110000
 
 testOPCODE          DC.W %0100111001110000
 
+isolateNibbleMask   DC.W %1111000000000000
+
 
 * Ea variables.
 modeDn              DC.B %00000000      * Dn
@@ -2583,10 +2570,140 @@ longDisplacement    DC.B %11111111      * For detecting a long displacement.
 
 first1Bitmask       DC.B %00000001      *For movem.
 
-* End Ea Variables.
-isolateNibbleMask   DC.W %1111000000000000
-*TESTSTARTADDRESS	EQU $00004000
-*TESTENDADDRESS		EQU	$00005000
+
+***********************************************************************
+************************* Test Driver Program *************************
+***********************************************************************
+**** A bunch of tests for all the supported opcodes and EA modes. *****
+
+	RTS *get out of here!
+
+	MOVE D1, D2                        *Test move.
+    MOVE.B (A1), D2
+    MOVE D1, (A2)+
+    MOVE.L #$12345678, D2
+
+    MOVEA.W A1, A2                     *Test movea.
+    MOVEA.L D5, A2
+    MOVEA (A1)+, A3
+
+    MOVEM.L D1-D4, (A2)                *Test movem.
+	MOVEM D1-D4/A3-A5, -(A2)
+    MOVEM (A2), A5-A7
+
+    NOT D2                             *Test non supported opcode (DATA).
+
+	ADD.L D1, D2                       *Test add.
+    ADD.B #1, D1                       *Test unsupported add mode (Addi which is DATA).
+    ADD (A4)+, D2
+
+    ADDA A1, A2                        *Test adda.
+    ADDA.L D2, A5
+    ADDA.W (A1)+, A5
+
+    SUB.B D1, D2                       *Test sub.
+    SUB.W (A1)+, D1
+    SUB.L (A2), D3
+
+    SUBQ.B #3, D2                      *Test subq.
+    SUBQ.W #5, (A3)+
+    SUBQ.L #1, -(A2)
+
+    MULS D1, D2                        *Test muls.
+    MULS (A5), D1
+    MULS -(A7), D3
+
+    DIVS D1, D2                        *Test divs.
+    DIVS (A5), D1
+    DIVS -(A7), D3
+
+    LEA CR, A1                         *Test lea.
+	LEA $000000AD.L, A1
+    LEA $A123, A7
+
+    OR D1, D2                          *Test or.
+    OR.L (A4)+, D2
+    OR.B -(A4), D6
+
+	ORI #12, D1                        *Test ori.
+    ORI.B #15, D2
+    ORI.L #1, D0
+
+    NOT D2                             *Test non supported opcode (DATA).
+
+    NEG D1                             *Test neg.
+    NEG (A2)
+    NEG (A6)+
+
+	EOR D1, D2                         *Test eor.
+    EOR D2, (A2)+
+    EOR D6, -(A3)
+
+    LSR.L #3, D2                       *Test lsr.
+    LSR (A2)
+    LSR.W (A2)+
+
+    LSL.L #3, D2                       *Test lsl.
+    LSL (A2)
+    LSL.W (A2)+
+
+    ASR.L #3, D2                       *Test asr.
+    ASR (A2)
+    ASR.W (A2)+
+
+    ASL.L #3, D2                       *Test asl.
+    ASL (A2)
+    ASL.W (A2)+
+
+    ROR.L #3, D2                       *Test ror.
+    ROR (A2)
+    ROR.W (A2)+
+
+    ROL.L #3, D2                       *Test rol.
+    ROL (A2)
+    ROL.W (A2)+
+
+    NOT D2                             *Test non supported opcode (DATA).
+
+    BCLR.L #3, D2                      *Test bclr (Both modes).
+    BCLR D5, D2
+    BCLR #5, (A4)
+
+	CMP D1, D2                         *Test cmp.
+    CMP.W #3, D5
+    CMP.L (A4)+, D5
+
+	CMPI #1, D1                        *Test cmpi.
+    CMPI.B #2, -(A3)
+    CMPI.L #3, (A1)
+
+    BCS dontgohere                     *Test Bcc (Both with label and address).
+    BCS $00001EEE.L
+
+    BGE dontgohere
+    BGE $00001EEE.L
+
+    BLT dontgohere
+    BLT $00001EEE.L
+
+    BVC dontgohere
+    BVC $00001EEE.L
+
+    NOT D2                             **Test non supported opcode (DATA).
+
+    BRA dontgohere                     *Test branching.
+    BRA $00001EEE.L
+
+    JSR dontgohere                     *Test jsr.
+    JSR $00001EEE.L
+
+    RTS                                *Test rts.
+    NOP                                *Test nop.
+    RESET                              *Test reset.
+
+dontgohere                             *For testing branching.
+	RTS
+
 
 
    END    START        ; last line of source
@@ -2595,6 +2712,11 @@ isolateNibbleMask   DC.W %1111000000000000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
+
+
+
 
 
 
