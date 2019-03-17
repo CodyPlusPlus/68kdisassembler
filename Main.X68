@@ -1,3 +1,4 @@
+
 *--------------------------------------------------------------------------
 * Title      : Disassembler (Some Assembly Required)
 * Written by : Cody Stuck, Ardalan Ahanchi, Natallia Ustsiamchuk
@@ -20,153 +21,90 @@
 *---------------------------------------------------------------------------
 START:
 
-    ***********************************************************
-    * Code demo for printing strings to console & file is here
-    * Pay close attention to:
-    *   (1) the detailed comments,
-    *   (2) how to build a (Callee-Saved) method
-    *   (3) how to call that method using JSR (return with RTS)
-    ***********************************************************
-    *LEA MSG1, A1        ; buffer of chars to write
-    *JSR TrapTask13
-
-    *LEA MSG2, A1        ; buffer of chars to write
-    *JSR TrapTask13
-
-    *LEA ascii_val, A1
-    *JSR AsciiToHex     ;  example of how to convert ascii to hex
-
-    **************************************************
-    *Your disassembler code goes here
-    **************************************************
-
-    *A4 will be used for test loop here
-	MOVEA #startAddress,A6
-
-mainloop:
-	CMPA #endAddress,A6
-	BEQ endmainloop
-
-	MOVE.B #0,D6 *reset bad flag
-	MOVEA #printbuff,A5 *reset printbuff
-
-	*print address
-
-	JSR identifyOPCODE
-
-	CMP.B #1,D6
-	BEQ badbuff
-
-	MOVE.B #0,(A5)
-	MOVEA #printbuff,A1
-	JSR TrapTask13
-
-	JMP mainloop
-
-badbuff
-	MOVEA #printbuff,A5 *reset printbuff
-
-	MOVE.B #' ',(A5)+
-	MOVE.B #'D',(A5)+
-	MOVE.B #'A',(A5)+
-	MOVE.B #'T',(A5)+
-	MOVE.B #'A',(A5)+
-	*add data to print buffer here
-	MOVE.B #0,(A5)
-
-	MOVEA #printbuff,A1
-	JSR TrapTask13
-
-	ADDA #2,A4
-
-	JMP mainloop
-
-endmainloop
-    *end goes here
-
-    MOVE.B #%00111001, D7
-    JSR rotateModeReg
-
-    MOVEA #opcodebuff, A6
-    MOVE.L #$1234ABCD, (A6)
-    MOVEA #printbuff,A5
-    JSR decodeEA
-    MOVE.B #0,(A5)
-    MOVEA #printbuff,A1
-    JSR TrapTask13
-
-    *LEA testOPCODE,A6
-    *MOVEA #printbuff,A5
-    *JSR identifyOPCODE
-    *MOVE.B #0,(A5)
-    *MOVEA #printbuff,A1
-    *JSR TrapTask13
-
-    *LEA testOPCODE,A6
-    *MOVEA #printbuff,A5
-    *JSR identifyOPCODE
-    *MOVE.B #0,(A5)
-    *MOVEA #printbuff,A1
-    *JSR TrapTask13
-
-    ;Open config.cfg (trap subtasks 50-59) (this is an IO responsibility if 3 team members)
-    ;load start and end address as longs
-
-    *IO
-    LEA         inputFile,A1        *Load the file
-    MOVE        #51,D0              *Open the file
-    TRAP        #15
-
-    LEA         good_buffer,A1      *Precondition for trap 53
-    MOVE.L      #startaddr,D2       *number of bytes to read
-    MOVE.L      #53,D0              *Reading a file
-    TRAP        #15
-    JSR         AsciiToHex          *Convern to hex
-    MOVE.L      D0,D2               *starting address hex value is moved to be stored longterm in D2
-
-    MOVEA.L     #0,A1               *Clear registry
-
-    *how to read second line in the file ???
-    MOVE.L      #startaddr,D2       *number of bytes to read
-    MOVE.L      #53,D0              *Reading a file
-    TRAP        #15
-
-
-    *JSR         AsciiToHex          *Convern to hex
-    *MOVE.L      D0,D3              *ending address hex value is moved to be stored longterm in D3
-
-
-
-    ;loop from start to end, printing out the instruction or DATA if not recognized
-    ;   use my method below (printStringToFileAndConsole) to print out the individual instruction (or DATA)
-
-
-*still working on this
-IO_INVALID:
-        *Display DATA YYYY
-    LEA         DATA_OUT,A1
-
-
-    SIMHALT
-
-*********************************************************************************
-* Method Name: yourDisassemblerFirstMethodHere
-* Description: call this method from your code above; see the examples above on
-*   how to call methods and use them profusely as you build your final project
-*
-* Preconditions:  TBA
-* Postconditions: TBA
-*********************************************************************************
-method1:
-        NOP
-        RTS
-
 *********************************************************************************
 ********************************* I/O Section ***********************************
 *********************************************************************************
 
-*Code goes here
+readConfigFile
+        LEA inputFile,A1                    *Load the file to read
+        MOVE #51,D0                         *Open the file
+        TRAP #15
 
+        MOVE.L #filesize, D2                *attemp to read 80 bytes
+        LEA addressbuff, A1
+        MOVE.L #53, D0                      *Reading a file
+        TRAP #15                            *Gets content
+
+        MOVE.L #0, D7                       *Read the starting address into A6.
+        JSR AsciiToHex
+        MOVE.L D7, A6
+
+        CMPI.W #$0D0A, (A1)+                *Check for newline.
+        BNE invalidConfig
+
+        MOVE.L #0, D7                       *Read ending address into A4.
+        JSR AsciiToHex
+        MOVE.L D7, A4
+
+mainloop
+        CMPA A4,A6
+        BGT endmainloop
+
+        MOVE.B #0,D6                          *reset bad flag
+        MOVEA #printbuff,A5                   *reset printbuff
+
+        MOVE.L A6, D4                         *print address
+        MOVE.B #'$', (A5)+
+        MOVE.B #0, D3
+
+printAddressLoop
+        CMP.B #8, D3                          *Check if we've read 8 nibbles.
+        BEQ printAddressLoop_done
+        ROL.L #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP printAddressLoop
+
+printAddressLoop_done
+        MOVE.B #' ', (A5)+
+
+	    JSR identifyOPCODE
+
+	    CMP.B #1,D6
+	    BEQ badbuff
+
+	    MOVE.B #0,(A5)
+	    MOVEA #printbuff,A1
+	    JSR TrapTask13
+
+	    JMP mainloop
+
+badbuff
+	    MOVEA #printbuff,A5 *reset printbuff
+
+	    MOVE.B #' ',(A5)+
+	    MOVE.B #'D',(A5)+
+	    MOVE.B #'A',(A5)+
+	    MOVE.B #'T',(A5)+
+        MOVE.B #'A',(A5)+
+	    *add data to print buffer here
+	    MOVE.B #0,(A5)
+
+	    MOVEA #printbuff,A1
+	    JSR TrapTask13
+
+	    ADDA #2,A4
+
+        JMP mainloop
+
+invalidConfig
+        SIMHALT
+
+endmainloop
+        SIMHALT
 
 *********************************************************************************
 ******************************* OP Code Section *********************************
@@ -256,13 +194,6 @@ ident0000 * is this ORI/CMPI/BCLR
 		CMP.W BCLR_SA_CHK,D3 *compare to identity
 		BEQ dBCLR_SA *match?
 		MOVE.W (A6),D3 *move the full opcode back into D3
-
-		* BCLR_SB?
-		AND.W BCLR_SB_ISO,D3 *clear irrelevant bits
-		CMP.W BCLR_SB_CHK,D3 *compare to identity
-		BEQ dBCLR_SB *match?
-		MOVE.W (A6),D3 *move the full opcode back into D3
-
 
 		* BCLR_D?
 		AND.W BCLR_D_ISO,D3 *clear irrelevant bits
@@ -482,7 +413,7 @@ dMEM_ASD *this is mem ASD
 
 		JSR identDIRECTION
 
-        JSR EApi_Data_Xn
+        JSR EApi_Xn
 
 		JMP endIdent
 
@@ -495,7 +426,7 @@ dMEM_LSD *this is mem LSD
 
 		JSR identDIRECTION
 
-        JSR EApi_Data_Xn
+        JSR EApi_Xn
 
 		JMP endIdent
 
@@ -508,7 +439,7 @@ dMEM_ROD *this is mem ROD
 
 		JSR identDIRECTION
 
-        JSR EApi_Data_Xn
+        JSR EApi_Xn
 
 		JMP endIdent
 
@@ -593,6 +524,8 @@ dRTS *this is RTS
 		MOVE.B #'T',(A5)+
 		MOVE.B #'S',(A5)+
 
+        JSR increaseOpPtr
+
 		JMP endIdent
 
 dNOP *this is NOP
@@ -602,6 +535,8 @@ dNOP *this is NOP
 		MOVE.B #'N',(A5)+
 		MOVE.B #'O',(A5)+
 		MOVE.B #'P',(A5)+
+
+        JSR increaseOpPtr
 
 		JMP endIdent
 
@@ -643,16 +578,7 @@ dBCLR_SA *this is BCLR_SA
 		MOVE.B #'L',(A5)+
 		MOVE.B #'R',(A5)+
 
-		JMP endIdent
-
-dBCLR_SB *this is BCLR_SB
-
-		*add to buffer
-		MOVE.B #' ',(A5)+
-		MOVE.B #'B',(A5)+
-		MOVE.B #'C',(A5)+
-		MOVE.B #'L',(A5)+
-		MOVE.B #'R',(A5)+
+        JSR EApi_Bclr_SA
 
 		JMP endIdent
 
@@ -664,6 +590,8 @@ dBCLR_D *this is BCLR_D
 		MOVE.B #'C',(A5)+
 		MOVE.B #'L',(A5)+
 		MOVE.B #'R',(A5)+
+
+        JSR EApi_Dn_Xn
 
 		JMP endIdent
 
@@ -745,6 +673,8 @@ dBRA *this is BRA
 		MOVE.B #'R',(A5)+
 		MOVE.B #'A',(A5)+
 
+        JSR EApi_Displacement
+
 		JMP endIdent
 
 dBCS *this is BCS
@@ -767,6 +697,8 @@ dBGE *this is BGE
 		MOVE.B #'G',(A5)+
 		MOVE.B #'E',(A5)+
 
+        JSR EApi_Displacement
+
 		JMP endIdent
 
 dBLT *this is BTL
@@ -777,6 +709,8 @@ dBLT *this is BTL
 		MOVE.B #'T',(A5)+
 		MOVE.B #'L',(A5)+
 
+        JSR EApi_Displacement
+
 		JMP endIdent
 
 dBVC *this is BVC
@@ -786,6 +720,8 @@ dBVC *this is BVC
 		MOVE.B #'B',(A5)+
 		MOVE.B #'V',(A5)+
 		MOVE.B #'C',(A5)+
+
+        JSR EApi_Displacement
 
 		JMP endIdent
 
@@ -904,6 +840,8 @@ ddata *this must be data
 		*print DATA here maybe?
 		MOVE.B #1,D6 *set bad flag
 
+        JSR increaseOpPtr
+
 		JMP endIdent
 
 dRESET *this is RESET
@@ -915,6 +853,8 @@ dRESET *this is RESET
 		MOVE.B #'S',(A5)+
 		MOVE.B #'E',(A5)+
 		MOVE.B #'T',(A5)+
+
+        JSR increaseOpPtr
 
 		JMP endIdent
 
@@ -1259,7 +1199,7 @@ EApi_Imd_Xn:
         JSR switchModeReg
         JSR printImdData
         JSR printComma
-        JSR switchBackModeReg                *Decode and Print the source.
+        JSR switchBackModeReg            *Decode and Print the source.
         JSR decodeEA
 
         RTS
@@ -1301,20 +1241,20 @@ EApi_Xn_Dn:
 * For instructions with:  xxx Xn, Xn (Only Move)
 EApi_Xn_Xn:
         JSR IncreaseOpPtr
-        JSR setModeReg                   *Decode and Print the destination.
+        JSR setModeReg
         JSR decodeEA
         JSR printComma
-        JSR switchModeReg                *Decode and Print the source.
+        JSR switchModeReg
         JSR rotateModeReg
         JSR decodeEA
-        JSR rotateModeReg                     *Rotate back.
+        JSR rotateModeReg
 
         RTS
 
 * For instructions with:  xxx Xn
 EApi_Xn:
         JSR IncreaseOpPtr
-        JSR setModeReg                   *Decode and Print the source.
+        JSR setModeReg
         JSR decodeEA
         RTS
 
@@ -1354,8 +1294,20 @@ EApi_Displacement:
 EApi_Movem:
         JSR IncreaseOpPtr
         JSR setModeReg
-        JSR printMovem *Not fully functional yet.
+        JSR printMovem
         JSR printComma
+        JSR decodeEA
+
+        RTS
+
+* Only for BCLR_SA
+EApi_Bclr_SA:
+        JSR IncreaseOpPtr
+        JSR setModeReg                   *Decode and Print the destination.
+        JSR switchModeReg
+        JSR printBclrImd
+        JSR printComma
+        JSR switchBackModeReg            *Decode and Print the source.
         JSR decodeEA
 
         RTS
@@ -1584,6 +1536,49 @@ printImdData:
         RTS
 
 *********************************************************************************
+* Method Name:    printBclrImd
+* Description:    * A function which print the immediate data for one of the
+*                   BCLR modes. It reads the second byte after the opcdoe.
+*
+* Preconditions:  * A6 should contain the pointer to the next word after opcode.
+*                 * A5 Should contain the pointer to the next space in good buffer.
+*
+* Postconditions: * Sets the memory pointer to the next word after Immediate at A6.
+*                 * Sets the pointer to next available space in good buffer at A5.
+*
+* Modifies:       * A5
+*                 * A6
+*********************************************************************************
+printBclrImd:
+        MOVEM.L dataRegsToSave, -(SP)         *Save the status of the registers.
+        MOVE.B #' ', (A5)+                    *Add data to print buffer.
+        MOVE.B #'#', (A5)+
+        MOVE.B #'$', (A5)+
+
+        MOVE.B #0, D3                         *Setup a counter for loop.
+        MOVE.L #0, D4                         *Clear the D4
+
+        MOVE.B (A6)+, D4                      *Remove the leading zeros.
+        MOVE.B (A6)+, D4                      *Set temp word in d4.
+
+
+loop_printBclrImd
+        CMP.B #2, D3                          *Check if we've read 2 nibbles.
+        BEQ loop_printBclrImd_done
+        ROL.B #4, D4                          *Rotate, get the first nibble and store in D4.
+        MOVE.B D4, D5
+        AND.B firstNibble, D5
+        JSR hexToAscii                        *Get the ASCII value.
+        MOVE.B D5, (A5)+                      *Add the new ASCII byte to the output.
+        ADD.B #1, D3                          *Increase the counter.
+        JMP loop_printBclrImd
+
+loop_printBclrImd_done
+        MOVE.B #' ', (A5)+
+        MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
+        RTS
+
+*********************************************************************************
 * Method Name:    printMovem
 * Description:    * Decodes and prints the resigster list for the MoveM.
 *
@@ -1712,6 +1707,7 @@ dec_printMovemAn
 
 Movem_done
         MOVE.B #' ', -(A5)                    *Remove the last slash.
+        MOVE.B #' ', (A5)+                    *Add a space.
         MOVEM.L (SP)+, dataRegsToSave         *Restore the registers.
         RTS
 
@@ -1889,8 +1885,10 @@ printDisplacement:
 *For printing a byte displacement.
 printDis_b
         MOVE.B D7, D4
-        *ADD.B PC, D4
+        ADD.L A6, D4
 
+        MOVE.B #'.', (A5)+                    *Add the . to the opcode.
+        MOVE.B #'B', (A5)+                    *Add the .B to the opcode.
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'$', (A5)+
 
@@ -1910,8 +1908,11 @@ loop_printDis_b
 *For printing a word displacement.
 printDis_w
         MOVE.W (A6)+, D4
-        *ADD.W PC, D4
+        ADD.L A6, D4
+        SUBI.L #2, D4
 
+        MOVE.B #'.', (A5)+                    *Add the . to the opcode.
+        MOVE.B #'W', (A5)+                    *Add the .W to the opcode.
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'$', (A5)+
 
@@ -1931,8 +1932,11 @@ loop_printDis_w
 *For printing a long displacement.
 printDis_l
         MOVE.L (A6)+, D4
-        *ADD.L PC, D4
+        ADD.L A6, D4
+        SUBI.L #4, D4
 
+        MOVE.B #'.', (A5)+                    *Add the . to the opcode.
+        MOVE.B #'L', (A5)+                    *Add the L to the opcode.
         MOVE.B #' ', (A5)+                    *Add data to print buffer.
         MOVE.B #'$', (A5)+
 
@@ -1959,7 +1963,7 @@ endPrintDisplacement
 * Method Name:    decodeEA (For Dest)
 * Description:    * Decodes the 6 bits of the EA field of the instruction. After
 *                   Finding and adding the proper text to the buffer, it sets the
-*                   Good/bad flag and goes back to the calling function.
+*                   Good/bad fla$00002234g and goes back to the calling function.
 *
 * Preconditions:  * D7 Should contain the 6 bits from EA field of opcode, within
 *                   The first byte.
@@ -2412,22 +2416,23 @@ countDone:
 	LEA CR,A1
 	LEA $0000000D.L, A1
 	OR D1,D2
-	ORI #0,D1
+	ORI #12,D1
 	NEG D1
 	EOR D1,D2
 	LSR #3,D2
-	LSL #3,D2
+	LSR (A2)
+	LSL.L #3,D2
 	ASL #3,D2
 	ASR #3,D2
 	ROL #3,D2
 	ROR #3,D2
-	*BCLR #3,D2
+	BCLR #3,D2
 	CMP D1,D2
 	CMPI #1,D1
 	JSR dontgohere
 	JSR $00001EEE.L
 	BCS dontgohere
-    *NOP
+    NOP
 	*BGE dontgohere
 	*BLT dontgohere
 	*BVC dontgohere
@@ -2443,21 +2448,19 @@ NEWLINE             DC.B CR,LF,0
 MSG1                DC.B 'DATA',0
 MSG2                DC.B 'NOP',0
 outFilename         DC.B 'Output.txt',0
+inputFile           DC.B 'Config.cfg',0
 byteRead            DS.B 1
 ascii_val           DC.B $31,$41,$30,$30,$31,$41,$30,$30 * Test value $1A001A00
 
 * I/O Variables.
-*Variables go here.
+filesize            DC.B 80
+addressbuff         EQU $3900           *For reading the config file data.
 printbuff           EQU $4000
 opcodebuff          EQU $6000
-inputFile           DC.B   'Config.cfg',0
-good_buffer         DS.B    100
-startaddr           DS.L    64 CR,LF,0
-endaddr             DS.L    64 CR,LF,EOD
+good_buffer         DS.B 100
+startaddr           DS.L 64 CR,LF,0
+endaddr             DS.L 64 CR,LF,EOD
 DATA_OUT            DC.B 'DATA',0      *output message when invalid instruction
-
-startAddress		EQU $00002164
-endAddress			EQU $000021AA
 
 * Opcode variables.
 chk0000				DC.W %0000000000000000
@@ -2490,9 +2493,6 @@ CMPICHK             DC.W %0000110000000000
 
 BCLR_SA_ISO         DC.W %0000111111000000
 BCLR_SA_CHK         DC.W %0000100010000000
-
-BCLR_SB_ISO         DC.W %0000000000000000
-BCLR_SB_CHK         DC.W %0000000000000000
 
 BCLR_D_ISO          DC.W %0000000111000000
 BCLR_D_CHK          DC.W %0000000110000000
@@ -2595,6 +2595,19 @@ isolateNibbleMask   DC.W %1111000000000000
 *~Font size~10~
 *~Tab type~1~
 *~Tab size~4~
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
