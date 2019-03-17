@@ -96,7 +96,7 @@ badbuff
 	    MOVEA #printbuff,A1
 	    JSR TrapTask13
 
-	    ADDA #2,A4
+	    ADDA #2,A6
 
         JMP mainloop
 
